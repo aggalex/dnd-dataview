@@ -30,7 +30,7 @@ export class CharacterRepository extends Repository<Character> {
 
     readonly baseCharacterQuery = new DataViewQuery({
         required: z.looseObject({
-            "Class": this.characterClassSchema,
+            "Class": coerce.array(this.characterClassSchema),
             "Race": referenceSchema,
             "Background": referenceSchema.optional(),
             "Armor": referenceSchema.optional(),

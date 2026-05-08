@@ -12,7 +12,7 @@ export interface Page {
 export interface DataView {
     current(): Page;
     page(query: Reference): Page | undefined;
-    query(query: string): any;
+    query(query: string): Promise<{ value: { values: Reference[] }}>;
     span(text: string): void;
     el(tag: string): void;
     table(headers: string[], rows: string[][]): void;

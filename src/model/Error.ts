@@ -80,7 +80,11 @@ export class ModelErrorContainer extends Error {
 
 }
 
-export abstract class Result<T, E> {
+export interface Get<T> {
+    get(): T;
+}
+
+export abstract class Result<T, E> implements Get<T | E> {
     protected constructor(readonly ok: boolean) {
 
     };
@@ -93,6 +97,15 @@ export abstract class Result<T, E> {
         }
     }
 
+    isOk(): this is Get<T> {
+        return this.ok;
+    }
+
+    isError(): this is Get<E> {
+        return !this.ok;
+    }
+
+    abstract get(): T | E;
     abstract andThen<T1>(f: (item: T) => Result<T1, E>): Result<T1, E>;
     abstract orElse<E1>(f: (error: E) => Result<T, E1>): Result<T, E1>;
     abstract map<U>(f: (item: T) => U): Result<U, E>;
@@ -123,9 +136,13 @@ export type ResultError<E> = Result<never, E> & {
     error: E
 }
 
-class ResultOkImpl<T> extends Result<T, never> implements ResultOk<T> {
+class ResultOkImpl<T> extends Result<T, never> implements ResultOk<T>, Get<T> {
     constructor(readonly item: T) {
         super(true);
+    }
+
+    override get() {
+        return this.item;
     }
 
     override andThen<T1, E>(f: (item: T) => Result<T1, E>): Result<T1, E> {
@@ -177,9 +194,13 @@ class ResultOkImpl<T> extends Result<T, never> implements ResultOk<T> {
     }
 }
 
-class ResultErrorImpl<T> extends Result<never, T> implements ResultError<T> {
+class ResultErrorImpl<T> extends Result<never, T> implements ResultError<T>, Get<T> {
     constructor(readonly error: T) {
         super(false);
+    }
+
+    override get() {
+        return this.error;
     }
 
     override andThen<T1>(f: (item: never) => Result<T1, T>): Result<T1, T> {

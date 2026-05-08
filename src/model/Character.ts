@@ -17,7 +17,7 @@ export interface Money {
 }
 
 export interface Character {
-    class: CharacterClass,
+    class: CharacterClass[],
     race: Reference,
     background?: Reference,
     armor?: Reference,
