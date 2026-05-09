@@ -1,5 +1,6 @@
 import {z, ZodError, ZodSafeParseResult} from "zod";
 import {Reference} from "@/model/Dataview";
+import {RepositoryResult} from "@/repository/Repository";
 
 export interface ICharacterError {
     section: string;
@@ -56,6 +57,20 @@ export class ModelErrorContainer extends Error {
         if (!this.isOk()) {
             throw this;
         }
+    }
+
+    addModelErrors<T>(res: RepositoryResult<T>, ref: Reference, section: string): T | undefined {
+        const outputRes = res
+            .mapErr(err => {
+                this.add(ModelError.fromZod(err, ref, section, "Error"));
+                return undefined;
+            })
+            .map(({ output, warnings }) => {
+                warnings && this.add(ModelError.fromZod(warnings, ref, section, "Warning"));
+                return output;
+            });
+
+        return outputRes.get();
     }
 
     // pageOrError(query, errorProps) {

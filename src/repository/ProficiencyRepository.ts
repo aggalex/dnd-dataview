@@ -25,6 +25,10 @@ abstract class BaseProficiencyRepository<P> extends Repository<Proficiency<P>[]>
             })))
             .parse(page)
     }
+
+    isType(proficiency: Proficiency<unknown>): proficiency is Proficiency<P> {
+        return proficiency.property === this.propertyName;
+    }
 }
 
 export class SavingThrowProficiencyRepository extends BaseProficiencyRepository<Ability> {

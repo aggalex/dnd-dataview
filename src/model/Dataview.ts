@@ -13,9 +13,9 @@ export interface DataView {
     current(): Page;
     page(query: Reference): Page | undefined;
     query(query: string): Promise<{ value: { values: Reference[] }}>;
-    span(text: string): void;
+    span(text: Reference[] | Reference): void;
     el(tag: string): void;
-    table(headers: string[], rows: string[][]): void;
+    table(headers: string[], rows: readonly unknown[][]): void;
     header(level: number, text: string): void;
     paragraph(text: string): void;
 }

@@ -4,12 +4,13 @@ import {Page, referenceSchema} from "@/model/Dataview";
 import {z} from "zod";
 import {coerce} from "@/model/Util";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
-import {AbilityRollRepository} from "@/repository/AbilityRepository";
+import {AbilityBonusRepository, AbilityRollRepository} from "@/repository/AbilityRepository";
 
 export class CharacterRepository extends Repository<Character> {
 
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
     private readonly abilityRollRepository = new AbilityRollRepository(this.dv);
+    private readonly abilityBonusRepository = new AbilityBonusRepository(this.dv);
 
     private readonly characterClassSchema = z.tuple([referenceSchema, z.number(), referenceSchema.optional()] as const)
         .transform(([cls, level, subclass]): CharacterClass => ({
@@ -55,6 +56,7 @@ export class CharacterRepository extends Repository<Character> {
                 warnings
             }) => ({
             output: {
+                reference: page.file.link,
                 class: character.Class,
                 race: character.Race,
                 background: character.Background,

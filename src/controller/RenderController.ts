@@ -8,6 +8,16 @@ export class RenderController {
     ) {
     }
 
+    signed(n?: number) {
+        if (!n) {
+            return undefined;
+        } else if (n > 0) {
+            return `+${n}`
+        } else {
+            return `${n}`
+        }
+    }
+
     renderErrors(errors: ModelError[] | ModelErrorContainer) {
         const errorArray = Array.isArray(errors)? errors: errors.getErrors();
 
