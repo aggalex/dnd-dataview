@@ -251,7 +251,7 @@ export class CharacterRenderController extends RenderController {
         const abilityJustifications = Object.fromEntries(ABILITIES.map(ability => [
             ability,
             character.abilityBonusIndex.filter(abilityBonus => ability in abilityBonus && abilityBonus[ability] !== 0)
-                .map(abilityBonus => `[[${abilityBonus.justification}]]`)
+                .map(abilityBonus => `${abilityBonus.justification}`)
                 .join(", ")
         ]))
 

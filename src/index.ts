@@ -1,2 +1,1 @@
-export { AbilityBonusRepository } from "@/repository/AbilityRepository"
-export { RenderController } from "@/controller/RenderController"
+export { CharacterRenderController } from "@/controller/CharacterRenderController"

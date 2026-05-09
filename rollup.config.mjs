@@ -35,6 +35,7 @@ export default {
         json(),
         typescript({
             tsconfig: './tsconfig.json',
+            exclude: ["tests/**", "**/*.test.ts"]
         }),
         // terser(),
     ],

@@ -1,8 +1,6 @@
 import {Reference, DataView, Page} from "@/model/Dataview";
-import {z, ZodError, ZodSafeParseResult} from "zod";
+import {z, ZodError} from "zod";
 import {Result} from "@/model/Error";
-import {request} from "node:http";
-import {Proficiency} from "@/model/Proficiency";
 
 export abstract class Repository<Item> {
     constructor(readonly dv: DataView) {
@@ -10,6 +8,10 @@ export abstract class Repository<Item> {
 
     abstract parse(page: Page): RepositoryResult<Item>;
     getByReference(reference: Reference): RepositoryResult<Item> | undefined {
+        if (typeof reference === "object") {
+            reference = reference.path
+        }
+
         const page = this.dv.page(reference);
         return page? this.parse(page): undefined;
     }
