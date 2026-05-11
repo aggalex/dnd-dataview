@@ -4,7 +4,7 @@ import {Page, referenceSchema, Reference} from "@/model/Dataview";
 import {z} from "zod";
 import {Ability, abilitySchema, Skill, skillSchema} from "@/model/Abilities";
 
-abstract class BaseProficiencyRepository<P> extends Repository<Proficiency<P>[]> {
+export abstract class BaseProficiencyRepository<P> extends Repository<Proficiency<P>[]> {
     abstract readonly propertyName: string;
     abstract readonly valueSchema: z.ZodType<P>;
     readonly tag: "Proficiency" | "Expertise" = "Proficiency";

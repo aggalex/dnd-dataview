@@ -1,16 +1,11 @@
 import {ModelError, ModelErrorContainer} from "@/model/Error";
-import {DataView} from "@/model/Dataview";
+import {Controller} from "@/controller/Controller";
 
-export class RenderController {
-
-    constructor(
-        public dv: DataView
-    ) {
-    }
+export class RenderController extends Controller {
 
     signed(n?: number) {
-        if (!n) {
-            return undefined;
+        if (n == null) {
+            return n;
         } else if (n > 0) {
             return `+${n}`
         } else {

@@ -1,5 +1,5 @@
 import {Repository, DataViewQuery, RepositoryResult} from "@/repository/Repository";
-import {ABILITIES, Ability, AbilityScores} from "@/model/Abilities";
+import {ABILITIES, Ability, abilitySchema, AbilityScores} from "@/model/Abilities";
 import {Page} from "@/model/Dataview";
 import {AbilityBonus} from "@/model/Proficiency";
 import {z} from "zod";
@@ -48,7 +48,10 @@ export class AbilityBonusRepository extends Repository<AbilityBonus> {
 
     override parse(page: Page): RepositoryResult<AbilityBonus> {
         return this.abilityBonusQuery
-            .transform(object => ({ ...object, justification: page.file.link }))
+            .transform(object => ({
+                ...Object.fromEntries(Object.entries(object).filter(([prop, val]) => abilitySchema.safeParse(prop).success)),
+                justification: page.file.link
+            }))
             .parse(page);
     }
 }
