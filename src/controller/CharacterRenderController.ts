@@ -18,6 +18,7 @@ import {Proficiency} from "@/model/Proficiency";
 import {Tag} from "@/model/render/Tag";
 import {Container} from "@/model/render/Container";
 import {CharacterLogicController} from "@/controller/CharacterLogicController";
+import {StringUtil} from "@/util";
 
 export class CharacterRenderController extends RenderController {
 
@@ -118,11 +119,14 @@ export class CharacterRenderController extends RenderController {
 
         const proficienciesPerSkill = Object.groupBy(proficiencies, item => item.item);
 
-        const skillRows = Object.entries(SKILLS).flatMap(([ability, skills]) => skills.map(skill => [
-            skill,
-            this.signed(character.skills[skill]),
-            `${ability}, ${this.getReferenceString(proficienciesPerSkill[skill] ?? [])}`
-        ] as const));
+        const skillRows = Object.entries(SKILLS)
+            .flatMap(([ability, skills]) => skills.map(skill => [
+                skill,
+                this.signed(character.skills[skill]),
+                `${ability}, ${this.getReferenceString(proficienciesPerSkill[skill] ?? [])}`
+            ] as const));
+
+        skillRows.sort(([a], [b]) => StringUtil.compare(a, b))
 
         return new Table(["Skill", "Score", "From Ability"] as const, skillRows);
     }
@@ -141,9 +145,11 @@ export class CharacterRenderController extends RenderController {
             this.signed(character.abilityChecks[ability]),
             this.signed(character.savingThrows[ability]),
             abilityJustifications[ability]
-        ]);
+        ] as const);
 
-        return new Table(["Ability", "Score", "Check", "Save", "Affected by"], abilityRows);
+        abilityRows.sort(([a], [b]) => StringUtil.compare(a, b))
+
+        return new Table(["Ability", "Score", "Check", "Save", "Affected by"] as const, abilityRows);
     }
 
     private getState(character: CalculatedCharacter): Tag[] {

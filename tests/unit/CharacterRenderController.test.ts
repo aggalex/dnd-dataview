@@ -11,7 +11,7 @@ import {WeaponRepository} from "@/repository/EquipmentRepository";
 import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {ModelErrorContainer, Result} from "@/model/Error";
 import assert from "node:assert";
-import {ABILITIES, Skill} from "@/model/Abilities";
+import {ABILITIES, ALL_SKILLS, Skill} from "@/model/Abilities";
 import {Proficiency} from "@/model/Proficiency";
 
 class TestContext {
@@ -220,3 +220,24 @@ test("Ensure skill proficiency justifications are rendered correctly", async () 
 
     assert.deepStrictEqual(justifications.Athletics, "Strength, [[Class]] (Proficiency), [[Race]] (Expertise)");
 });
+
+test("Ensure skills and abilities are rendered correctly", async () => {
+    const context = new TestContext();
+    context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
+
+    context.tested.renderCharacter("Me");
+
+    assert.deepStrictEqual(context.getErrors(), []);
+
+    const orderedAbilities = ABILITIES.map(a => a);
+    const orderedSkills = ALL_SKILLS.map(a => a);
+
+    orderedAbilities.sort();
+    orderedSkills.sort();
+
+    const [abilitiesInTable, skillsInTable] = context.dv.table.mock.calls
+        .map(({ arguments: [_headers, values] }) => values.map(([descriptor]: [string]) => descriptor));
+
+    assert.deepStrictEqual(abilitiesInTable, orderedAbilities);
+    assert.deepStrictEqual(skillsInTable, orderedSkills);
+})
