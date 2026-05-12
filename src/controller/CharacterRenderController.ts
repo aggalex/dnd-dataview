@@ -147,8 +147,6 @@ export class CharacterRenderController extends RenderController {
             abilityJustifications[ability]
         ] as const);
 
-        abilityRows.sort(([a], [b]) => StringUtil.compare(a, b))
-
         return new Table(["Ability", "Score", "Check", "Save", "Affected by"] as const, abilityRows);
     }
 

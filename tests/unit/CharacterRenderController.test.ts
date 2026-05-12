@@ -229,10 +229,9 @@ test("Ensure skills and abilities are rendered correctly", async () => {
 
     assert.deepStrictEqual(context.getErrors(), []);
 
-    const orderedAbilities = ABILITIES.map(a => a);
+    const orderedAbilities = ABILITIES;
     const orderedSkills = ALL_SKILLS.map(a => a);
 
-    orderedAbilities.sort();
     orderedSkills.sort();
 
     const [abilitiesInTable, skillsInTable] = context.dv.table.mock.calls
