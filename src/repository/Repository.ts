@@ -1,12 +1,35 @@
-import {Reference, DataView, Page} from "@/model/Dataview";
+import {Reference, DataView, Page, pageSchema} from "@/model/Dataview";
 import {z, ZodError} from "zod";
 import {Result} from "@/model/Error";
+import {Hierarchical, HierarchyResolver} from "@/model/Hierarchical";
+
+const referenceSchema = pageSchema.transform(({file}) => ({ reference: file.link }));
 
 export abstract class Repository<Item> {
     constructor(readonly dv: DataView) {
     }
 
-    abstract parse(page: Page): RepositoryResult<Item>;
+    readonly reference = referenceSchema;
+
+    abstract readonly required: z.ZodType<Item>;
+    readonly warnings: z.ZodType = z.looseObject({});
+
+    parse(page: Page): RepositoryResult<Item> {
+        const result = this.required.safeParse(page);
+        if (!result.success) {
+            return Result.error(result.error)
+        }
+
+        const { error } = this.warnings.safeParse(page);
+
+        const output = result.data;
+
+        return Result.ok({
+            output,
+            warnings: error
+        });
+    }
+
     getByReference(reference: Reference): RepositoryResult<Item> | undefined {
         if (typeof reference === "object") {
             reference = reference.path
@@ -17,46 +40,9 @@ export abstract class Repository<Item> {
     }
 }
 
-interface IPageQuery<Item> {
-    required: z.ZodType<Item>,
-    warnings?: z.ZodType,
-}
-
 interface SuccessfulQueryResult<Item> {
     output: Item,
     warnings?: ZodError
-}
-
-export class DataViewQuery<Item> implements IPageQuery<Item> {
-    readonly required: z.ZodType<Item>;
-    readonly warnings: z.ZodType = z.any();
-
-    constructor(query: IPageQuery<Item>) {
-        this.required = query.required;
-        if (query.warnings)
-            this.warnings = query.warnings;
-    }
-
-    parse(page: Page): RepositoryResult<Item> {
-        const result = this.required.safeParse(page);
-        if (!result.success) {
-            return Result.error(result.error)
-        }
-
-        const { error } = this.warnings.safeParse(page);
-
-        return Result.ok({
-            output: result.data,
-            warnings: error
-        });
-    }
-
-    transform<U>(fn: (item: Item) => U): DataViewQuery<U> {
-        return new DataViewQuery<U>({
-            required: this.required.transform(fn),
-            warnings: this.warnings as unknown as z.ZodType<U>,
-        })
-    }
 }
 
 export type RepositoryResult<Item> = Result<SuccessfulQueryResult<Item>, ZodError>;

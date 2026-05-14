@@ -10,10 +10,6 @@ import {
     ABILITIES,
     SKILLS,
 } from "@/model/Abilities";
-import {
-    SkillExpertiseRepository,
-    SkillProficiencyRepository
-} from "@/repository/ProficiencyRepository";
 import {Proficiency} from "@/model/Proficiency";
 import {Tag} from "@/model/render/Tag";
 import {Container} from "@/model/render/Container";
@@ -26,8 +22,6 @@ export class CharacterRenderController extends RenderController {
         dv: DataView,
         private readonly characterRepository = new CharacterRepository(dv),
         private readonly weaponRepository = new WeaponRepository(dv),
-        private readonly skillProficiencyRepository = new SkillProficiencyRepository(dv),
-        private readonly skillExpertiseRepository = new SkillExpertiseRepository(dv),
         private readonly characterLogicController = new CharacterLogicController(dv)
     ) {
         super(dv);
@@ -83,11 +77,20 @@ export class CharacterRenderController extends RenderController {
     }
 
     private getLinkString(ref: Reference) {
+        let name: string
+        let path: string | undefined = undefined
         if (typeof ref === "string") {
-            return `[[${ref}]]`
+            name = ref;
         } else {
-            return `${ref}`
+            path = ref.path;
+            if (!ref.display) {
+                const path = ref.path.split("/");
+                name = path[path.length - 1].split(".")[0];
+            } else {
+                name = ref.display
+            }
         }
+        return `[[${[path, name].filter(a => a).join("|")}]]`
     }
 
     private getWeapons(character: CalculatedCharacter): [Table, ModelErrorContainer] {
@@ -114,8 +117,7 @@ export class CharacterRenderController extends RenderController {
     }
 
     private getSkillsTable(character: CalculatedCharacter): Table {
-        const proficiencies = character.proficiencies
-            .filter(prof => this.skillProficiencyRepository.isType(prof) || this.skillExpertiseRepository.isType(prof));
+        const proficiencies = character.proficiencies.skill;
 
         const proficienciesPerSkill = Object.groupBy(proficiencies, item => item.item);
 
@@ -135,7 +137,7 @@ export class CharacterRenderController extends RenderController {
         const abilityJustifications = Object.fromEntries(ABILITIES.map(ability => [
             ability,
             character.abilityBonusIndex.filter(abilityBonus => ability in abilityBonus && abilityBonus[ability] !== 0)
-                .map(abilityBonus => `${abilityBonus.justification}`)
+                .map(abilityBonus => `${this.getLinkString(abilityBonus.justification)}`)
                 .join(", ")
         ]))
 

@@ -1,8 +1,4 @@
 import {MockDataView, MockPage, mocker} from "@tests/mock.test";
-import {
-    SkillExpertiseRepository,
-    SkillProficiencyRepository
-} from "@/repository/ProficiencyRepository";
 import test, {mock} from "node:test";
 import {CalculatedCharacter, Character} from "@/model/Character";
 import {CharacterRenderController} from "@/controller/CharacterRenderController";
@@ -12,14 +8,12 @@ import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {ModelErrorContainer, Result} from "@/model/Error";
 import assert from "node:assert";
 import {ABILITIES, ALL_SKILLS, Skill} from "@/model/Abilities";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 
 class TestContext {
     readonly dv = new MockDataView(MockPage.of("Me"));
     readonly characterRepository = mocker.mockRepository(CharacterRepository);
     readonly proficiencyRepository = mocker.mockRepository(WeaponRepository);
-    readonly skillProficiencyRepository = mocker.mockRepository(SkillProficiencyRepository);
-    readonly skillExpertiseRepository = mocker.mockRepository(SkillExpertiseRepository);
     readonly characterLogicController: CharacterLogicController = mocker.mock(CharacterLogicController);
     readonly character: CalculatedCharacter = {
         abilityBonusIndex: [],
@@ -89,15 +83,13 @@ class TestContext {
             Wisdom: 0,
             Charisma: 0
         },
-        proficiencies: []
+        proficiencies: new ProficiencyIndex()
     };
 
     readonly tested = new CharacterRenderController(
         this.dv,
         this.characterRepository,
         this.proficiencyRepository,
-        this.skillProficiencyRepository,
-        this.skillExpertiseRepository,
         this.characterLogicController
     )
 
@@ -190,22 +182,20 @@ test("Ensure all ability values are rendered", async () => {
 test("Ensure skill proficiency justifications are rendered correctly", async () => {
     const context = new TestContext();
     context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
-    context.character.proficiencies = [
-        {
-            justification: "Class",
-            item: "Athletics",
-            type: "Proficiency",
-            property: "Skill Proficiency"
-        },
-        {
-            justification: "Race",
-            item: "Athletics",
-            type: "Expertise",
-            property: "Skill Expertise"
-        }
-    ]
-    context.skillProficiencyRepository.isType = mock.fn((prof): prof is Proficiency<Skill> => prof.type === "Proficiency");
-    context.skillExpertiseRepository.isType = mock.fn((prof): prof is Proficiency<Skill> => prof.type === "Expertise");
+    context.character.proficiencies = new ProficiencyIndex({
+        skill: [
+            {
+                justification: "Class",
+                item: "Athletics",
+                type: "Proficiency",
+            },
+            {
+                justification: "Race",
+                item: "Athletics",
+                type: "Expertise",
+            }
+        ]
+    })
 
     context.tested.renderCharacter("Me");
 
@@ -239,4 +229,4 @@ test("Ensure skills and abilities are rendered correctly", async () => {
 
     assert.deepStrictEqual(abilitiesInTable, orderedAbilities);
     assert.deepStrictEqual(skillsInTable, orderedSkills);
-})
+});

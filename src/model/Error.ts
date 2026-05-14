@@ -129,7 +129,9 @@ export abstract class Result<T, E> implements Get<T | E> {
     abstract unwrapError(): E
     abstract unwrapOr(defaultItem: T): T;
     abstract unwrapErrorOr(defaultItem: E): E;
+    abstract unwrapOrElse<T1>(f: (error: E) => T1): T | T1;
     abstract unwrapOrElse(f: (error: E) => T): T;
+    abstract unwrapErrorOrElse<E1>(f: (item: T) => E1): E | E1;
     abstract unwrapErrorOrElse(f: (item: T) => E): E;
     abstract expect(message: string): T;
     abstract expectErr(message: string): E;
@@ -196,6 +198,7 @@ class ResultOkImpl<T> extends Result<T, never> implements ResultOk<T>, Get<T> {
         return this.item;
     }
 
+    override unwrapErrorOrElse(f: (item: T) => never): never
     override unwrapErrorOrElse<E>(f: (item: T) => E): E {
         return f(this.item);
     }
@@ -250,6 +253,7 @@ class ResultErrorImpl<T> extends Result<never, T> implements ResultError<T>, Get
         return this.error;
     }
 
+    override unwrapOrElse(f: (error: T) => never): never
     override unwrapOrElse<U>(f: (error: T) => U): U {
         return f(this.error);
     }

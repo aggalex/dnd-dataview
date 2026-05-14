@@ -1,23 +1,15 @@
-import {Repository, DataViewQuery} from "@/repository/Repository";
+import {Repository} from "@/repository/Repository";
 import {Armor, armorSchema, Weapon, weaponSchema} from "@/model/Equipment";
-import {Page} from "@/model/Dataview";
+import {Page, pageSchema} from "@/model/Dataview";
 
 export class ArmorRepository extends Repository<Armor> {
-    parse(page: Page) {
-        return new DataViewQuery({
-            required: armorSchema
-        })
-            .transform(armor => ({ ...armor, reference: page.file.link }))
-            .parse(page);
-    }
+    override required = armorSchema.and(
+        pageSchema.transform(({file}) => ({reference: file.link}))
+    );
 }
 
 export class WeaponRepository extends Repository<Weapon> {
-    parse(page: Page) {
-        return new DataViewQuery({
-            required: weaponSchema
-        })
-            .transform(weapon => ({...weapon, reference: page.file.link}))
-            .parse(page);
-    }
+    override required = weaponSchema.and(
+        pageSchema.transform(({file}) => ({reference: file.link}))
+    );
 }

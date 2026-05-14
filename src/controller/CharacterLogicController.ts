@@ -1,13 +1,11 @@
 import {Reference, DataView} from "@/model/Dataview";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {CalculatedCharacter, Character} from "@/model/Character";
 import {ModelErrorContainer} from "@/model/Error";
 import {ABILITIES, Ability, AbilityBonusIndex, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
 import {
-    ProficiencyRepository,
-    SavingThrowProficiencyRepository, SkillExpertiseRepository,
-    SkillProficiencyRepository
+    ProficiencyRepository
 } from "@/repository/ProficiencyRepository";
 import {RaceRepository} from "@/repository/RaceRepository";
 import {Controller} from "@/controller/Controller";
@@ -18,9 +16,6 @@ export class CharacterLogicController extends Controller {
         dv: DataView,
         private readonly abilityBonusRepository = new AbilityBonusRepository(dv),
         private readonly proficiencyRepository = new ProficiencyRepository(dv),
-        private readonly savingThrowProficiencyRepository = new SavingThrowProficiencyRepository(dv),
-        private readonly skillProficiencyRepository = new SkillProficiencyRepository(dv),
-        private readonly skillExpertiseRepository = new SkillExpertiseRepository(dv),
         private readonly raceRepository = new RaceRepository(dv),
     ) {
         super(dv);
@@ -32,13 +27,12 @@ export class CharacterLogicController extends Controller {
         const proficiencyBonus = this.calculateProficiencyBonus(character);
 
         const bonusProviders = this.getBonusProviders(character);
-        const proficiencies = bonusProviders
+        const proficiencies = new ProficiencyIndex(...bonusProviders
             .map(ref => {
                 const res = this.proficiencyRepository.getByReference(ref);
                 return res && errors.addModelErrors(res, ref, "Proficiency")
             })
-            .filter((res): res is Proficiency<unknown>[] => !!res)
-            .flatMap(a => a)
+            .filter((res): res is ProficiencyIndex => !!res))
 
         const [abilityBonusIndex, bonusIndexErrors] = this.calculateAbilityBonuses(bonusProviders);
         errors.addAll(bonusIndexErrors);
@@ -122,9 +116,9 @@ export class CharacterLogicController extends Controller {
         })
     }
 
-    private calculateSavingThrows(abilityChecks: AbilityScores, proficiencies: Proficiency<unknown>[], proficiencyBonus: number): AbilityScores {
+    private calculateSavingThrows(abilityChecks: AbilityScores, proficiencies: ProficiencyIndex, proficiencyBonus: number): AbilityScores {
         const savingThrowProficiencies = Object.groupBy(
-            proficiencies.filter(item => this.savingThrowProficiencyRepository.isType(item)),
+            proficiencies.savingThrow,
             item => item.type
         );
 
@@ -148,11 +142,11 @@ export class CharacterLogicController extends Controller {
         })
     }
 
-    private calculateSkills(abilityChecks: AbilityScores, proficiencies: Proficiency<unknown>[], proficiencyBonus: number): SkillScores {
-        const skillProficiencies = {
-            Proficiency: proficiencies.filter(item => this.skillProficiencyRepository.isType(item)),
-            Expertise: proficiencies.filter(item => this.skillExpertiseRepository.isType(item)),
-        }
+    private calculateSkills(abilityChecks: AbilityScores, proficiencies: ProficiencyIndex, proficiencyBonus: number): SkillScores {
+        const skillProficiencies = Object.groupBy(
+            proficiencies.skill,
+            item => item.type
+        );
 
         const countBonus = (pool: Proficiency<Skill>[] | undefined, skill: Skill) => pool
             ?.filter(({ item }) => item === skill)

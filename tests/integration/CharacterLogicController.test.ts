@@ -4,7 +4,7 @@ import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {MockDataView, MockPage} from "@tests/mock.test";
 import assert from "node:assert";
 import {ABILITIES, AbilityScores, Skill, SKILLS} from "@/model/Abilities";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 
 const baseCharacter: Character = {
     abilityRolls: {
@@ -27,7 +27,7 @@ const baseCharacter: Character = {
         electrum: 0,
         copper: 0
     },
-    proficiencies: [],
+    proficiencies: new ProficiencyIndex(),
     race: "Loxodon",
     reference: "Me",
     weapons: []
@@ -172,42 +172,44 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
     assert.deepStrictEqual(calculatedCharacter.savingThrows, expectedSavingThrows);
     assert.deepStrictEqual(calculatedCharacter.skills, expectedSkills);
 
-    assert.deepStrictEqual(new Set(calculatedCharacter.proficiencies), new Set([
-        {
-            justification: race.file.link,
-            item: "Intimidation",
-            type: "Proficiency",
-            property: "Skill Proficiency",
-        },
-        {
-            justification: race.file.link,
-            item: "Survival",
-            type: "Proficiency",
-            property: "Skill Proficiency",
-        },
-        {
-            justification: cls.file.link,
-            item: "Athletics",
-            type: "Proficiency",
-            property: "Skill Proficiency",
-        },
-        {
-            justification: race.file.link,
-            item: "Intimidation",
-            type: "Expertise",
-            property: "Skill Expertise",
-        },
-        {
-            justification: race.file.link,
-            item: "Strength",
-            type: "Proficiency",
-            property: "Saving Throw Proficiency",
-        },
-        {
-            justification: cls.file.link,
-            item: 2,
-            type: "Proficiency",
-            property: "Initiative Bonus",
-        }
-    ] as Proficiency<unknown>[]));
+    const expectedProficiencies = new ProficiencyIndex({
+        skill: [
+            {
+                justification: cls.file.link,
+                item: "Athletics",
+                type: "Proficiency",
+            },
+            {
+                justification: race.file.link,
+                item: "Intimidation",
+                type: "Proficiency",
+            },
+            {
+                justification: race.file.link,
+                item: "Survival",
+                type: "Proficiency",
+            },
+            {
+                justification: race.file.link,
+                item: "Intimidation",
+                type: "Expertise",
+            },
+        ],
+        initiativeBonus: [
+            {
+                justification: cls.file.link,
+                item: 2,
+                type: "Proficiency",
+            }
+        ],
+        savingThrow: [
+            {
+                justification: race.file.link,
+                item: "Strength",
+                type: "Proficiency",
+            },
+        ]
+    })
+
+    assert.deepStrictEqual(calculatedCharacter.proficiencies, expectedProficiencies);
 });

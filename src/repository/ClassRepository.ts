@@ -1,6 +1,6 @@
-import {Repository, DataViewQuery, RepositoryResult} from "@/repository/Repository";
+import {Repository, RepositoryResult} from "@/repository/Repository";
 import {Class} from "@/model/Class";
-import {Page, Reference, referenceSchema} from "@/model/Dataview";
+import {Page, pageSchema, Reference, referenceSchema} from "@/model/Dataview";
 import {z, ZodError} from "zod";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {coerce} from "@/model/Util";
@@ -9,73 +9,52 @@ import {Result} from "@/model/Error";
 export class ClassRepository extends Repository<Class> {
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
 
-    private readonly required = z.object({
+    readonly base = z.object({
         "Hit Dice": z.string().optional().default("d8"),
         "Initial Hit Dice": z.number().optional().default(1),
-    });
+    })
 
-    private readonly warnings = z.looseObject(Object.fromEntries(this.required.keyof()
+    readonly required = this.base
+        .and(this.reference)
+        .and(this.proficiencyRepository.required.transform(proficiencies => ({proficiencies})))
+        .transform(item => ({
+            hitDice: item["Hit Dice"],
+            initialHitDice: item["Initial Hit Dice"],
+            proficiencies: item.proficiencies,
+            reference: item.reference,
+        }));
+
+    readonly warnings = z.looseObject(Object.fromEntries(this.base.keyof()
         .options
         .map(item => [item, z.unknown()])
     ))
         .refine(item => !item["Hit Dice"] || !item["Initial Hit Dice"], {
             error: "Missing Hit Dice",
-        })
-
-    private readonly classQuery = new DataViewQuery({
-        required: this.required,
-        warnings: this.warnings,
-    })
-        .transform(item => ({
-            hitDice: item["Hit Dice"],
-            initialHitDice: item["Initial Hit Dice"]
-        }))
-
-    parse(page: Page): RepositoryResult<Class> {
-
-        const partialClass = this.classQuery.parse(page);
-
-        const proficiencies = this.proficiencyRepository.parse(page);
-
-        return RepositoryResult.of([partialClass, proficiencies] as const)
-            .map(({ output: [partialClass, proficiencies], warnings }) => ({
-                output: {
-                    ...partialClass,
-                    proficiencies
-                } satisfies Class,
-                warnings
-            }));
-    }
+        });
 
     async getFeaturesByReferenceAndLevel(reference: Reference): Promise<RepositoryResult<Reference[][]>> {
         const pageFeatures = z.looseObject({
             Feature: coerce.array(referenceSchema)
         })
-        const query = new DataViewQuery({
-            required: pageFeatures
-        });
+
         const page = this.dv.page(reference);
 
-        const explicitFeaturesResult = page
-            ? query.parse(page ?? {})
-            : Result.ok({ output: { Feature: [] } }) as RepositoryResult<z.infer<typeof pageFeatures>>;
+        const explicitFeaturesResult = page && pageFeatures.safeParse(page ?? {});
 
-        if (!explicitFeaturesResult.isOk()) {
-            return Result.error(explicitFeaturesResult.unwrapError());
+        if (explicitFeaturesResult && !explicitFeaturesResult.success) {
+            return Result.error(explicitFeaturesResult.error);
         }
 
-        const explicitFeatures = explicitFeaturesResult.unwrap();
+        const explicitFeatures = explicitFeaturesResult?.data;
 
         const features = await this.dv.query(`LIST FROM "Features"`);
 
-        const featurePageQuery = new DataViewQuery({
-            required: z.looseObject({
-                class: referenceSchema,
-                level: z.number().optional().default(0),
-            })
+        const featurePageQuery = z.looseObject({
+            class: referenceSchema,
+            level: z.number().optional().default(0),
         })
 
-        const errors = [(explicitFeatures.warnings)]
+        const errors = []
         const output: Reference[][] = []
 
         for (const featureRef of features.value.values) {
@@ -85,13 +64,13 @@ export class ClassRepository extends Repository<Class> {
                 continue;
             }
 
-            const result = featurePageQuery.parse(page);
-            if (!result.ok) {
-                errors.push(result.unwrapError());
+            const result = featurePageQuery.safeParse(page);
+            if (!result.success) {
+                errors.push(result.error);
                 continue;
             }
 
-            const descriptor = result.unwrap().output;
+            const descriptor = result.data;
             const classPage = this.dv.page(descriptor.class);
             if (!classPage || classPage.file.link !== page.file.link) {
                 continue;

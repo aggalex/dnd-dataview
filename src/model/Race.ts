@@ -1,6 +1,6 @@
 import {Reference} from "@/model/Dataview";
 import {z} from "zod";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 
 export const sizeSchema = z.enum(["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"])
 
@@ -13,5 +13,5 @@ export interface Race {
     size: Size;
     traits: Reference[];
     reference: Reference;
-    proficiencies: Proficiency<unknown>[];
+    proficiencies: ProficiencyIndex;
 }

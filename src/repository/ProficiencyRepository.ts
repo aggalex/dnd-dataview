@@ -1,108 +1,61 @@
-import {Repository, DataViewQuery, RepositoryResult} from "@/repository/Repository";
-import {Proficiency} from "@/model/Proficiency";
-import {Page, referenceSchema, Reference} from "@/model/Dataview";
+import {Repository} from "@/repository/Repository";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {referenceSchema, pageSchema, Reference} from "@/model/Dataview";
 import {z} from "zod";
-import {Ability, abilitySchema, Skill, skillSchema} from "@/model/Abilities";
+import {abilitySchema, Skill, skillSchema} from "@/model/Abilities";
 
-export abstract class BaseProficiencyRepository<P> extends Repository<Proficiency<P>[]> {
-    abstract readonly propertyName: string;
-    abstract readonly valueSchema: z.ZodType<P>;
-    readonly tag: "Proficiency" | "Expertise" = "Proficiency";
+function proficiencyPropertySchema<T extends z.ZodType>(valueSchema: T) {
+    return z.array(valueSchema).or(valueSchema)
+        .transform((item): z.infer<T>[] => Array.isArray(item) ? item : [item])
+        .default([])
+}
 
-    override parse(page: Page) {
-        return new DataViewQuery({
-            required: z.looseObject({
-                [this.propertyName]: z.array(this.valueSchema).or(this.valueSchema)
-                    .transform((item): P[] => Array.isArray(item) ? item : [item])
-                    .default([])
-            })
-        })
-            .transform(({[this.propertyName]: p}) => p.map(item => ({
-                item,
-                type: this.tag,
-                justification: page.file.link,
-                property: this.propertyName,
-            })))
-            .parse(page)
+function arrayOrUndefined<T>(arr: T[]): T[] | undefined {
+    return arr.length > 0? arr: undefined;
+}
+
+export class ProficiencyRepository extends Repository<ProficiencyIndex> {
+    readonly metadata = z.registry<{ tag: "Proficiency" | "Expertise" }>();
+
+    readonly schema = z.looseObject({
+        "Saving Throw Proficiency": proficiencyPropertySchema(abilitySchema),
+        "Initiative Bonus": proficiencyPropertySchema(z.coerce.number()),
+        "Skill Proficiency": proficiencyPropertySchema(skillSchema),
+        "Skill Expertise": proficiencyPropertySchema(skillSchema).register(this.metadata, { tag: "Expertise" }),
+        "Armor Proficiency": proficiencyPropertySchema(z.string()),
+        "Tool Proficiency": proficiencyPropertySchema(referenceSchema),
+        "Weapon Proficiency": proficiencyPropertySchema(referenceSchema),
+        "Weapon Type Proficiency": proficiencyPropertySchema(z.string()),
+    });
+
+    private buildProficiencyArray<Prop extends ReturnType<typeof this.schema.keyof>["options"][number], T>(
+        index: Record<Prop, T[]>,
+        prop: Prop,
+        ref: Reference
+    ): Proficiency<T>[] | undefined {
+        const proficiencies = index[prop]
+            .filter(a => a != null)
+            .map(item => ({
+                item: item,
+                type: this.metadata.get((this.schema.shape)[prop])?.tag ?? "Proficiency",
+                justification: ref,
+            }))
+
+        return arrayOrUndefined(proficiencies);
     }
 
-    isType(proficiency: Proficiency<unknown>): proficiency is Proficiency<P> {
-        return proficiency.property === this.propertyName;
-    }
-}
-
-export class SavingThrowProficiencyRepository extends BaseProficiencyRepository<Ability> {
-
-    readonly propertyName = "Saving Throw Proficiency"
-    readonly valueSchema = abilitySchema
-
-}
-
-export class InitiativeBonusRepository extends BaseProficiencyRepository<number> {
-
-    readonly propertyName = "Initiative Bonus"
-    readonly valueSchema = z.coerce.number()
-
-}
-
-export class SkillProficiencyRepository extends BaseProficiencyRepository<Skill> {
-
-    readonly propertyName = "Skill Proficiency"
-    readonly valueSchema = skillSchema
-
-}
-
-export class SkillExpertiseRepository extends BaseProficiencyRepository<Skill> {
-
-    readonly propertyName = "Skill Expertise"
-    readonly valueSchema = skillSchema
-    readonly tag = "Expertise"
-
-}
-
-export class ArmorProficiencyRepository extends BaseProficiencyRepository<string> {
-
-    readonly propertyName = "Armor Proficiency"
-    readonly valueSchema = z.string()
-
-}
-
-export class ToolProficiencyRepository extends BaseProficiencyRepository<Reference> {
-
-    readonly propertyName = "Tool Proficiency"
-    readonly valueSchema = referenceSchema
-
-}
-
-export class WeaponProficiencyRepository extends BaseProficiencyRepository<Reference> {
-
-    readonly propertyName = "Weapon Proficiency"
-    readonly valueSchema = referenceSchema
-
-}
-
-export class WeaponTypeProficiencyRepository extends BaseProficiencyRepository<string> {
-
-    readonly propertyName = "Weapon Type Proficiency"
-    readonly valueSchema = z.string()
-
-}
-
-export class ProficiencyRepository extends Repository<Proficiency<unknown>[]> {
-    readonly proficiencyRepositories: BaseProficiencyRepository<unknown>[] = [
-        new SavingThrowProficiencyRepository(this.dv),
-        new SkillProficiencyRepository(this.dv),
-        new SkillExpertiseRepository(this.dv),
-        new ArmorProficiencyRepository(this.dv),
-        new ToolProficiencyRepository(this.dv),
-        new WeaponProficiencyRepository(this.dv),
-        new WeaponTypeProficiencyRepository(this.dv),
-        new InitiativeBonusRepository(this.dv)
-    ]
-
-    parse(page: Page): RepositoryResult<Proficiency<unknown>[]> {
-        const results = this.proficiencyRepositories.map(repo => repo.parse(page));
-        return RepositoryResult.combine(...results);
-    }
-
+    readonly required = this.schema.transform(proficiencyIndex => ({proficiencyIndex}))
+        .and(this.reference)
+        .transform(({ proficiencyIndex, reference }): ProficiencyIndex => new ProficiencyIndex({
+            savingThrow: this.buildProficiencyArray(proficiencyIndex, "Saving Throw Proficiency", reference),
+            initiativeBonus: this.buildProficiencyArray(proficiencyIndex, "Initiative Bonus", reference),
+            skill: arrayOrUndefined([
+                ...this.buildProficiencyArray<"Skill Proficiency", Skill>(proficiencyIndex, "Skill Proficiency", reference) ?? [],
+                ...this.buildProficiencyArray<"Skill Expertise", Skill>(proficiencyIndex, "Skill Expertise", reference) ?? []
+            ]),
+            armor: this.buildProficiencyArray(proficiencyIndex, "Armor Proficiency", reference),
+            tool: this.buildProficiencyArray(proficiencyIndex, "Tool Proficiency", reference),
+            weapon: this.buildProficiencyArray(proficiencyIndex, "Weapon Proficiency", reference),
+            weaponType: this.buildProficiencyArray(proficiencyIndex, "Weapon Type Proficiency", reference),
+        }))
 }

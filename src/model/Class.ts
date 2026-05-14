@@ -1,10 +1,10 @@
 import {Reference} from "@/model/Dataview";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 
 export interface Class {
     hitDice: string;
     initialHitDice: number;
-    proficiencies: Proficiency<unknown>[];
+    proficiencies: ProficiencyIndex;
 }
 
 export type FeatureIndex = {

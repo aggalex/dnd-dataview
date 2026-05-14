@@ -1,6 +1,6 @@
 import {Reference} from "@/model/Dataview";
 import {AbilityBonusIndex, AbilityScores, SkillScores} from "@/model/Abilities";
-import {Proficiency} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 
 export interface CharacterClass {
     class: Reference;
@@ -26,14 +26,14 @@ export interface Character {
     money: Money,
     maxHP: number,
     abilityRolls: AbilityScores,
-    proficiencies: Proficiency<unknown>[]
+    proficiencies: ProficiencyIndex
 }
 
 export interface CalculatedCharacter extends Character {
     speed: number;
     proficiencyBonus: number,
     abilityBonusIndex: AbilityBonusIndex[],
-    proficiencies: Proficiency<unknown>[],
+    proficiencies: ProficiencyIndex,
     savingThrows: AbilityScores,
     abilityScores: AbilityScores,
     abilityChecks: AbilityScores,

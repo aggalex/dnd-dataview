@@ -1,5 +1,12 @@
 import {z} from "zod";
 
+export const referenceSchema = z.object({
+    path: z.string(),
+    display: z.string().optional(),
+}).or(z.string());
+
+export type Reference = z.infer<typeof referenceSchema>
+
 export interface Page {
     file: {
         name: string;
@@ -8,6 +15,14 @@ export interface Page {
     };
     [key: string]: any;
 }
+
+export const pageSchema = z.object({
+    file: z.object({
+        name: z.string(),
+        path: z.string(),
+        link: referenceSchema,
+    })
+})
 
 export interface DataView {
     current(): Page;
@@ -19,7 +34,3 @@ export interface DataView {
     header(level: number, text: string): void;
     paragraph(text: string): void;
 }
-
-export const referenceSchema = z.object({ path: z.string() }).or(z.string());
-
-export type Reference = z.infer<typeof referenceSchema>

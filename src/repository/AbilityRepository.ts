@@ -1,6 +1,5 @@
-import {Repository, DataViewQuery, RepositoryResult} from "@/repository/Repository";
+import {Repository} from "@/repository/Repository";
 import {ABILITIES, Ability, abilitySchema, AbilityScores} from "@/model/Abilities";
-import {Page} from "@/model/Dataview";
 import {AbilityBonus} from "@/model/Proficiency";
 import {z} from "zod";
 
@@ -16,18 +15,11 @@ export class AbilityRollRepository extends Repository<AbilityScores> {
         .number({ error: "Abilities should be numbers" })
         .min(1).max(20);
 
-    readonly abilityRollQuery = new DataViewQuery({
-        required: this.abilitySchema(this.baseValueSchema.optional().default(NaN)),
-        warnings: this.abilitySchema(this.baseValueSchema),
-    })
-
-    override parse(page: Page) {
-        return this.abilityRollQuery
-            .transform(object => Object.fromEntries(
-                ABILITIES.map(ability => [ability, object[`${ability} Roll`]] as const)
-            ) as Record<Ability, number>)
-            .parse(page);
-    }
+    readonly warnings = this.abilitySchema(this.baseValueSchema);
+    readonly required = this.abilitySchema(this.baseValueSchema.optional().default(NaN))
+        .transform(object => Object.fromEntries(
+            ABILITIES.map(ability => [ability, object[`${ability} Roll`]] as const)
+        ) as Record<Ability, number>);
 }
 
 export class AbilityBonusRepository extends Repository<AbilityBonus> {
@@ -40,18 +32,13 @@ export class AbilityBonusRepository extends Repository<AbilityBonus> {
         .or(z.array(z.any()).refine(() => false, "Only one ability bonus per page per ability is supported"))
         .optional();
 
-    private readonly abilityBonusQuery = new DataViewQuery({
-        required: this.abilitySchema(this.baseValue),
-        warnings: this.abilitySchema(this.baseValue
-            .refine(value => value != 0, { error: "Ability bonus of 0" }))
-    })
+    readonly warnings = this.abilitySchema(this.baseValue
+            .refine(value => value != 0, { error: "Ability bonus of 0" }));
 
-    override parse(page: Page): RepositoryResult<AbilityBonus> {
-        return this.abilityBonusQuery
-            .transform(object => ({
-                ...Object.fromEntries(Object.entries(object).filter(([prop, val]) => abilitySchema.safeParse(prop).success)),
-                justification: page.file.link
-            }))
-            .parse(page);
-    }
+    readonly required = this.abilitySchema(this.baseValue)
+        .and(this.reference)
+        .transform(object => ({
+            ...Object.fromEntries(Object.entries(object).filter(([prop, val]) => abilitySchema.safeParse(prop).success)),
+            justification: object.reference
+        }));
 }
