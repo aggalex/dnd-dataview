@@ -2,12 +2,14 @@ import {z} from "zod";
 import {Repository} from "@/repository/Repository";
 import {Feature, FeatureProvider} from "@/model/Feature";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
-import {Page, Reference} from "@/model/Dataview";
+import {Reference} from "@/model/Dataview";
 import {coerce} from "@/model/Util";
+import {AbilityBonusRepository} from "@/repository/AbilityRepository";
 
 export class FeatureRepository extends Repository<Feature> {
 
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
+    private readonly abilityBonusRepository = new AbilityBonusRepository(this.dv);
 
     readonly required = z.looseObject({
         "Base AC": z.coerce.number("Base AC").optional(),
@@ -16,11 +18,13 @@ export class FeatureRepository extends Repository<Feature> {
     })
         .and(this.reference)
         .and(this.proficiencyRepository.required.transform(proficiencies => ({proficiencies})))
-        .transform(({"Base AC": armorClass, reference, proficiencies, level, class: cls}): Feature =>
+        .and(this.abilityBonusRepository.required.transform(abilityBonus => ({ abilityBonus })))
+        .transform(({"Base AC": armorClass, reference, proficiencies, abilityBonus, level, class: cls}): Feature =>
             ({
                 armorClass,
                 reference,
                 proficiencies,
+                abilityBonus,
                 for: cls != null? {
                     class: cls,
                     level: level ?? 0

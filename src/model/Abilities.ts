@@ -53,14 +53,7 @@ export type SkillScores = {
     [key in Skill]: number;
 };
 
-export interface IProficiency {
-    bonus: number;
-    justification: Reference;
-    type: string;
-}
-
-export type AbilityBonusIndex = {
-    [key in Ability]?: number;
-} & {
-    justification: Reference;
+export type AbilityBonusProvider = {
+    abilityBonus?: { [key in Ability]?: number; };
+    reference: Reference;
 }

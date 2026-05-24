@@ -114,8 +114,9 @@ export class CharacterRenderController extends RenderController {
     private getAbilityTable(character: CalculatedCharacter): Table {
         const abilityJustifications = Object.fromEntries(ABILITIES.map(ability => [
             ability,
-            character.abilityBonusIndex.filter(abilityBonus => ability in abilityBonus && abilityBonus[ability] !== 0)
-                .map(abilityBonus => `${abilityBonus.justification}`)
+            character.abilityBonusProviders
+                .filter(({abilityBonus}) => abilityBonus && ability in abilityBonus && abilityBonus[ability] !== 0)
+                .map(abilityBonus => `${abilityBonus.reference}`)
                 .join(", ")
         ]))
 

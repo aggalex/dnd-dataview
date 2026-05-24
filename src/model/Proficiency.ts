@@ -19,7 +19,7 @@ export const weaponProficiencySchema = proficiencySchema(Reference.schema)
 
 export type WeaponProficiency = z.infer<typeof weaponProficiencySchema>;
 
-export const abilityBonusSchema = baseBonusSchema.and(z.partialRecord(abilitySchema, z.coerce.number()));
+export const abilityBonusSchema = z.partialRecord(abilitySchema, z.coerce.number());
 
 export type AbilityBonus = z.infer<typeof abilityBonusSchema>;
 

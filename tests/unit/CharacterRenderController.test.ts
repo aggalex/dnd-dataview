@@ -20,7 +20,8 @@ class TestContext {
     readonly characterLogicController: CharacterLogicController = mocker.mock(CharacterLogicController);
     readonly character: CalculatedCharacter = {
         armorClass: 0, initiative: 0, passivePerception: 0,
-        abilityBonusIndex: [],
+        abilityBonusProviders: [],
+        abilityBonus: {},
         abilityChecks: {
             Strength: 0,
             Dexterity: 0,
@@ -254,6 +255,6 @@ test("Features are rendered correctly", async () => {
         .filter((arr): arr is NonNullable<typeof arr> => !!arr)
         .map(arr => arr[1])
 
-    assert.deepStrictEqual(new Set(headers), new Set(["Features", "From Race", "From Class"]));
+    assert.deepStrictEqual(new Set(headers), new Set(["Features", "From [[Race]]", "From [[Class]]"]));
     assert.deepStrictEqual(feats, context.character.allFeatures.map(feat => feat.reference.path));
 });

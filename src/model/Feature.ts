@@ -1,7 +1,8 @@
 import {Reference} from "@/model/Dataview";
 import {ProficiencyIndex} from "@/model/Proficiency";
+import {AbilityBonusProvider} from "@/model/Abilities";
 
-export interface Feature {
+export interface Feature extends AbilityBonusProvider {
     reference: Reference,
     armorClass?: number,
     proficiencies: ProficiencyIndex,

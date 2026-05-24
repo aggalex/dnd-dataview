@@ -17,13 +17,17 @@ export abstract class Repository<Item> {
         return this.dv.page(reference.path)
     }
 
+    protected getTestedObjectForWarnings(page: Page, parseResult: Item): unknown {
+        return page;
+    }
+
     parse(page: Page): RepositoryResult<Item> {
-        const result = this.required.safeParse(page);
+        const result = this.required.safeParse(page, { reportInput: true });
         if (!result.success) {
             return Result.error(result.error)
         }
 
-        const { error } = this.warnings.safeParse(page, { reportInput: true });
+        const { error } = this.warnings.safeParse(this.getTestedObjectForWarnings(page, result.data), { reportInput: true });
 
         const output = result.data;
 

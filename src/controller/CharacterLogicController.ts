@@ -1,7 +1,7 @@
 import {DataView, Reference} from "@/model/Dataview";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {CalculatedCharacter, Character} from "@/model/Character";
-import {ABILITIES, Ability, AbilityBonusIndex, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
+import {ABILITIES, Ability, AbilityBonusProvider, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {RaceRepository} from "@/repository/RaceRepository";
@@ -12,6 +12,13 @@ import {ClassRepository} from "@/repository/ClassRepository";
 import {BackgroundRepository} from "@/repository/BackgroundRepository";
 import {FeatureProvider} from "@/model/Feature";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
+import {Class} from "@/model/Class";
+
+interface ClassDescriptor {
+    class?: Class,
+    subclass?: Class,
+    level: number
+}
 
 export class CharacterLogicController extends Controller {
 
@@ -40,12 +47,6 @@ export class CharacterLogicController extends Controller {
                     ?.transform(this.errorViewModel.handle(ref, "Proficiency")))
             .filter((res): res is ProficiencyIndex => !!res))
 
-        const abilityBonusIndex = this.calculateAbilityBonuses(bonusProviders);
-        const abilityScores = this.calculateAbilityScores(character, abilityBonusIndex);
-        const abilityChecks = this.calculateAbilityChecks(abilityScores);
-        const savingThrows = this.calculateSavingThrows(abilityChecks, proficiencies, proficiencyBonus);
-        const skills = this.calculateSkills(abilityChecks, proficiencies, proficiencyBonus);
-
         const race = this.raceRepository.getByReference(character.race)
             ?.transform(this.errorViewModel.handle(character.race, "Race"));
 
@@ -55,12 +56,33 @@ export class CharacterLogicController extends Controller {
         const armor = character.armor && this.armorRepository.getByReference(character.armor)
             ?.transform(this.errorViewModel.handle(character.armor, "Armor"));
 
-        const classFeats = await this.collectClassFeatures(character);
+        const classes = character.class.map(desc => ({
+            class: this.classRepository.getByReference(desc.class)
+                ?.transform(this.errorViewModel.handle(desc.class, "Class")),
+            subclass: desc.subclass && this.classRepository.getByReference(desc.subclass)
+                ?.transform(this.errorViewModel.handle(desc.subclass, "Subclass")),
+            level: desc.level
+        }) satisfies ClassDescriptor)
+
+        const abilityBonusProviders: AbilityBonusProvider[] = [
+            character,
+            ...classes
+                .flatMap(desc => [desc.class, desc.subclass]),
+            race,
+            background
+        ].filter((a): a is NonNullable<typeof a> => !!a && !!a.abilityBonus && Object.keys(a.abilityBonus).length > 0)
+
+        const abilityScores = this.calculateAbilityScores(character, abilityBonusProviders);
+        const abilityChecks = this.calculateAbilityChecks(abilityScores);
+        const savingThrows = this.calculateSavingThrows(abilityChecks, proficiencies, proficiencyBonus);
+        const skills = this.calculateSkills(abilityChecks, proficiencies, proficiencyBonus);
+
+        const classFeats = await this.collectClassFeatures(classes);
 
         return {
             ...character,
             proficiencyBonus,
-            abilityBonusIndex,
+            abilityBonusProviders,
             proficiencies,
             abilityScores,
             abilityChecks,
@@ -100,20 +122,6 @@ export class CharacterLogicController extends Controller {
         return 1 + Math.ceil(levels / 4);
     }
 
-    private calculateAbilityBonuses(bonusProviders: Reference[]): AbilityBonusIndex[] {
-        return bonusProviders
-            .map(ref => this.abilityBonusRepository.getByReference(ref)
-                ?.transform(this.errorViewModel.handle(ref, "Ability Scores")))
-            .filter((res): res is AbilityBonusIndex => !!res)
-            .filter(res => {
-                const keys = Object.entries(res)
-                    .filter(([key, value]) => value !== 0)
-                    .map(([key]) => key);
-
-                return !(keys.length === 1 && keys[0] === "justification")
-            });
-    }
-
     private buildRecord<Key extends string, Value>(props: { from: readonly Key[], getValue(key: Key): Value }): { [key in Key]: Value }
     private buildRecord<Index, Key extends string, Value>(props: { from: readonly Index[], getKey(key: Index): Key, getValue(key: Index): Value }): { [key in Key]: Value }
     private buildRecord<Index, Key extends string, Value>({ from, getKey = a => a as unknown as Key, getValue }: { from: readonly Index[], getKey?(key: Index): Key, getValue(key: Index): Value }) {
@@ -123,11 +131,11 @@ export class CharacterLogicController extends Controller {
         ]))
     }
 
-    private calculateAbilityScores(character: Character, abilityBonuses: AbilityBonusIndex[]): AbilityScores {
+    private calculateAbilityScores(character: Character, abilityBonus: AbilityBonusProvider[]): AbilityScores {
         return this.buildRecord({
             from: ABILITIES,
-            getValue: ability => character.abilityRolls[ability] + abilityBonuses
-                    .map(item => item[ability])
+            getValue: ability => character.abilityRolls[ability] + abilityBonus
+                    .map(item => item.abilityBonus?.[ability])
                     .filter((item): item is number => item != null)
                     .reduce((a, b) => a + b, 0)
         })
@@ -159,15 +167,13 @@ export class CharacterLogicController extends Controller {
         })
     }
 
-    private async collectClassFeatures(character: Character) {
-        const collect = async (ref: Reference) => {
-            const featRefs = (await this.classRepository.getFeaturesByReference(ref))
-                ?.transform(this.errorViewModel.handle(ref, "Features"));
-
-            return featRefs
+    private async collectClassFeatures(classes: ClassDescriptor[]) {
+        const collect = async (cls: Class) => {
+            return (await this.classRepository.getFeaturesByReference(cls.reference))
+                ?.transform(this.errorViewModel.handle(cls.reference, "Features"))
         };
         const classFeatures = (await Promise.all(
-            character.class.map(async (characterClass) => (await Promise.all(
+            classes.map(async (characterClass) => (await Promise.all(
                 [characterClass.class, characterClass.subclass]
                     .filter((item): item is NonNullable<typeof item> => !!item)
                     .flatMap(collect)
@@ -176,14 +182,8 @@ export class CharacterLogicController extends Controller {
                 .filter(feat => feat.for?.level ?? 0 < characterClass.level)))
         ).flatMap(a => a)
 
-        const explicitFeatures = character.class.map(characterClass =>
-            [characterClass.class, characterClass.subclass]
-                .filter((item): item is NonNullable<typeof item> => !!item)
-                .map(ref => this.featureProviderRepository.getByReference(ref)
-                    ?.transform(this.errorViewModel.handle(ref, "Features"))
-                )
-                .filter((item): item is NonNullable<typeof item> => !!item)
-                .flatMap(provider => this.getFeaturesOf(provider))
+        const explicitFeatures = classes.map(characterClass =>
+            [characterClass.class, characterClass.subclass].flatMap(provider => this.getFeaturesOf(provider))
         ).flatMap(feat => feat)
 
         classFeatures.push(...explicitFeatures);

@@ -36,9 +36,9 @@ export class AbilityBonusRepository extends Repository<AbilityBonus> {
             .refine(value => value != 0, { error: "Ability bonus of 0" }));
 
     readonly required = this.abilitySchema(this.baseValue)
-        .and(this.reference)
         .transform(object => ({
-            ...Object.fromEntries(Object.entries(object).filter(([prop, val]) => abilitySchema.safeParse(prop).success)),
-            justification: object.reference
+            ...Object.fromEntries(Object.entries(object)
+                .filter(([prop, val]) => abilitySchema.safeParse(prop).success)
+                .filter(([_, val]) => val != null)),
         }));
 }

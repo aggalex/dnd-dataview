@@ -71,6 +71,8 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
 
     const cls = MockPage.of("Fighter", {
         Strength: 1,
+        "Hit Dice": "d6",
+        "Initial Hit Dice": 3
     })
 
     const dv = new MockDataView(MockPage.of(character.reference.path));
@@ -104,7 +106,10 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
     assert.deepStrictEqual(calculatedCharacter.abilityScores, expectedAbilities);
     assert.deepStrictEqual(calculatedCharacter.abilityChecks, expectedChecks);
     assert.deepStrictEqual(calculatedCharacter.savingThrows, expectedChecks);
-    assert.deepStrictEqual(new Set(calculatedCharacter.abilityBonusIndex), new Set([
+    assert.deepStrictEqual(new Set(calculatedCharacter.abilityBonusProviders.map(prov => ({
+        justification: prov.reference,
+        ...prov.abilityBonus
+    }))), new Set([
         {
             Strength: 1,
             justification: Reference.from(Reference.from(cls.file.link))
@@ -115,6 +120,9 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
             justification: Reference.from(Reference.from(race.file.link))
         }
     ]));
+    assert.deepStrictEqual(new Set(calculatedCharacter.abilityBonusProviders
+        .flatMap(prov => Object.entries(prov.abilityBonus ?? {}))
+        .filter(([_, value]) => value == null)), new Set())
 });
 
 test("Ensure proficiencies are considered skills and abilities are calculated correctly", async () => {
@@ -131,6 +139,8 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
     const cls = MockPage.of("Fighter", {
         "Skill Proficiency": "Athletics",
         "Initiative Bonus": 2,
+        "Hit Dice": "3d6",
+        "Initial Hit Dice": 3,
     })
 
     const dv = new MockDataView(MockPage.of(character.reference.path));
