@@ -1,6 +1,8 @@
 import {Reference} from "@/model/Dataview";
 import {AbilityBonusIndex, AbilityScores, SkillScores} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {Armor} from "@/model/Equipment";
+import {Feature, FeatureProvider} from "@/model/Feature";
 
 export interface CharacterClass {
     class: Reference;
@@ -16,7 +18,7 @@ export interface Money {
     copper: number;
 }
 
-export interface Character {
+export interface Character extends FeatureProvider {
     reference: Reference;
     class: CharacterClass[],
     race: Reference,
@@ -30,7 +32,10 @@ export interface Character {
 }
 
 export interface CalculatedCharacter extends Character {
-    speed: number;
+    speed: number,
+    initiative: number,
+    passivePerception: number,
+    armorClass: number,
     proficiencyBonus: number,
     abilityBonusIndex: AbilityBonusIndex[],
     proficiencies: ProficiencyIndex,
@@ -38,4 +43,5 @@ export interface CalculatedCharacter extends Character {
     abilityScores: AbilityScores,
     abilityChecks: AbilityScores,
     skills: SkillScores,
+    allFeatures: Feature[],
 }

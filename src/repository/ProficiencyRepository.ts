@@ -1,6 +1,6 @@
 import {Repository} from "@/repository/Repository";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
-import {referenceSchema, pageSchema, Reference} from "@/model/Dataview";
+import {Reference} from "@/model/Dataview";
 import {z} from "zod";
 import {abilitySchema, Skill, skillSchema} from "@/model/Abilities";
 
@@ -23,8 +23,8 @@ export class ProficiencyRepository extends Repository<ProficiencyIndex> {
         "Skill Proficiency": proficiencyPropertySchema(skillSchema),
         "Skill Expertise": proficiencyPropertySchema(skillSchema).register(this.metadata, { tag: "Expertise" }),
         "Armor Proficiency": proficiencyPropertySchema(z.string()),
-        "Tool Proficiency": proficiencyPropertySchema(referenceSchema),
-        "Weapon Proficiency": proficiencyPropertySchema(referenceSchema),
+        "Tool Proficiency": proficiencyPropertySchema(Reference.schema),
+        "Weapon Proficiency": proficiencyPropertySchema(Reference.schema),
         "Weapon Type Proficiency": proficiencyPropertySchema(z.string()),
     });
 

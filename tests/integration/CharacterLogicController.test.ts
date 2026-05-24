@@ -5,6 +5,7 @@ import {MockDataView, MockPage} from "@tests/mock.test";
 import assert from "node:assert";
 import {ABILITIES, AbilityScores, Skill, SKILLS} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {Reference} from "@/model/Dataview";
 
 const baseCharacter: Character = {
     abilityRolls: {
@@ -16,7 +17,7 @@ const baseCharacter: Character = {
         Charisma: 10
     },
     class: [{
-        class: "Fighter",
+        class: new Reference("Fighter"),
         level: 4,
     }],
     maxHP: 0,
@@ -28,18 +29,19 @@ const baseCharacter: Character = {
         copper: 0
     },
     proficiencies: new ProficiencyIndex(),
-    race: "Loxodon",
-    reference: "Me",
-    weapons: []
+    race: new Reference("Loxodon"),
+    reference: new Reference("Me"),
+    weapons: [],
+    features: []
 };
 
 test("Ensure skills and abilities are calculated correctly", async () => {
     const character: Character = Object.create(baseCharacter);
 
-    const dv = new MockDataView(MockPage.of(character.reference as string));
+    const dv = new MockDataView(MockPage.of(character.reference.path));
     const logicController = new CharacterLogicController(dv);
 
-    const [calculatedCharacter, modelErrorController] = logicController.calculateCharacter(character);
+    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
 
     const errors = modelErrorController.getErrors();
     assert.deepStrictEqual(errors, []);
@@ -72,13 +74,13 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
         Strength: 1,
     })
 
-    const dv = new MockDataView(MockPage.of(character.reference as string));
+    const dv = new MockDataView(MockPage.of(character.reference.path));
     dv.addPage(race);
     dv.addPage(cls);
 
     const logicController = new CharacterLogicController(dv);
 
-    const [calculatedCharacter, modelErrorController] = logicController.calculateCharacter(character);
+    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
 
     const errors = modelErrorController.getErrors();
     assert.deepStrictEqual(errors, []);
@@ -104,12 +106,12 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
     assert.deepStrictEqual(new Set(calculatedCharacter.abilityBonusIndex), new Set([
         {
             Strength: 1,
-            justification: cls.file.link
+            justification: Reference.from(Reference.from(cls.file.link))
         },
         {
             Strength: 1,
             Constitution: 2,
-            justification: race.file.link
+            justification: Reference.from(Reference.from(race.file.link))
         }
     ]));
 });
@@ -130,13 +132,13 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
         "Initiative Bonus": 2,
     })
 
-    const dv = new MockDataView(MockPage.of(character.reference as string));
+    const dv = new MockDataView(MockPage.of(character.reference.path));
     dv.addPage(race);
     dv.addPage(cls);
 
     const logicController = new CharacterLogicController(dv);
 
-    const [calculatedCharacter, modelErrorController] = logicController.calculateCharacter(character);
+    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
 
     const errors = modelErrorController.getErrors();
     assert.deepStrictEqual(errors, []);
@@ -175,36 +177,36 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
     const expectedProficiencies = new ProficiencyIndex({
         skill: [
             {
-                justification: cls.file.link,
+                justification: Reference.from(cls.file.link),
                 item: "Athletics",
                 type: "Proficiency",
             },
             {
-                justification: race.file.link,
+                justification: Reference.from(race.file.link),
                 item: "Intimidation",
                 type: "Proficiency",
             },
             {
-                justification: race.file.link,
+                justification: Reference.from(race.file.link),
                 item: "Survival",
                 type: "Proficiency",
             },
             {
-                justification: race.file.link,
+                justification: Reference.from(race.file.link),
                 item: "Intimidation",
                 type: "Expertise",
             },
         ],
         initiativeBonus: [
             {
-                justification: cls.file.link,
+                justification: Reference.from(cls.file.link),
                 item: 2,
                 type: "Proficiency",
             }
         ],
         savingThrow: [
             {
-                justification: race.file.link,
+                justification: Reference.from(race.file.link),
                 item: "Strength",
                 type: "Proficiency",
             },
@@ -213,3 +215,7 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
 
     assert.deepStrictEqual(calculatedCharacter.proficiencies, expectedProficiencies);
 });
+
+test("Features are collected correctly", async () => {
+
+})

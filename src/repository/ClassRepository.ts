@@ -1,6 +1,6 @@
 import {Repository, RepositoryResult} from "@/repository/Repository";
 import {Class} from "@/model/Class";
-import {Page, pageSchema, Reference, referenceSchema} from "@/model/Dataview";
+import {Page, pageSchema, Reference} from "@/model/Dataview";
 import {z, ZodError} from "zod";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {coerce} from "@/model/Util";
@@ -12,6 +12,7 @@ export class ClassRepository extends Repository<Class> {
     readonly base = z.object({
         "Hit Dice": z.string().optional().default("d8"),
         "Initial Hit Dice": z.number().optional().default(1),
+        "Feature": coerce.array(Reference.schema)
     })
 
     readonly required = this.base
@@ -20,6 +21,7 @@ export class ClassRepository extends Repository<Class> {
         .transform(item => ({
             hitDice: item["Hit Dice"],
             initialHitDice: item["Initial Hit Dice"],
+            features: item.Feature,
             proficiencies: item.proficiencies,
             reference: item.reference,
         }));
@@ -34,10 +36,10 @@ export class ClassRepository extends Repository<Class> {
 
     async getFeaturesByReferenceAndLevel(reference: Reference): Promise<RepositoryResult<Reference[][]>> {
         const pageFeatures = z.looseObject({
-            Feature: coerce.array(referenceSchema)
+            Feature: coerce.array(Reference.schema)
         })
 
-        const page = this.dv.page(reference);
+        const page = this.getPage(reference);
 
         const explicitFeaturesResult = page && pageFeatures.safeParse(page ?? {});
 
@@ -50,7 +52,7 @@ export class ClassRepository extends Repository<Class> {
         const features = await this.dv.query(`LIST FROM "Features"`);
 
         const featurePageQuery = z.looseObject({
-            class: referenceSchema,
+            class: Reference.schema,
             level: z.number().optional().default(0),
         })
 
@@ -58,7 +60,7 @@ export class ClassRepository extends Repository<Class> {
         const output: Reference[][] = []
 
         for (const featureRef of features.value.values) {
-            const page = this.dv.page(featureRef);
+            const page = this.getPage(featureRef);
 
             if (!page) {
                 continue;
@@ -71,7 +73,7 @@ export class ClassRepository extends Repository<Class> {
             }
 
             const descriptor = result.data;
-            const classPage = this.dv.page(descriptor.class);
+            const classPage = this.getPage(descriptor.class);
             if (!classPage || classPage.file.link !== page.file.link) {
                 continue;
             }

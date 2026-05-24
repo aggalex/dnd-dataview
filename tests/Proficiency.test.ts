@@ -3,6 +3,7 @@ import {MockDataView, MockPage} from "@tests/mock.test";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import assert from "node:assert";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {Reference} from "@/model/Dataview";
 
 const examplePage = MockPage.of("Character.md", {
     "Armor Proficiency": "Light Armor",
@@ -12,7 +13,7 @@ const examplePage = MockPage.of("Character.md", {
     "Saving Throw Proficiency": ["Dexterity", "Intelligence"],
 });
 
-test("Fetches proficiencies from pagee", async () => {
+test("Fetches proficiencies from page", async () => {
 
     const dv = new MockDataView(examplePage);
 
@@ -37,19 +38,19 @@ test("Fetches proficiencies from pagee", async () => {
 
     const buildProficiency = <Key extends keyof typeof examplePage>(
         key: Key,
-        type: Proficiency<unknown>["type"] = "Proficiency"
+        itemMapper = (item: any) => item
     ): Proficiency<any>[] => getProficiencyArray(key).map(item => ({
-        item,
-        justification: { path: "Character.md" },
-        type,
+        item: itemMapper(item),
+        justification: new Reference("Character.md"),
+        type: "Proficiency",
     }));
 
     const expected: ProficiencyIndex = new ProficiencyIndex({
         savingThrow: buildProficiency("Saving Throw Proficiency"),
         weaponType: buildProficiency("Weapon Type Proficiency"),
-        weapon: buildProficiency("Weapon Proficiency"),
-        tool: buildProficiency("Tool Proficiency"),
-        armor: buildProficiency("Armor Proficiency")
+        weapon: buildProficiency("Weapon Proficiency", Reference.from),
+        tool: buildProficiency("Tool Proficiency", Reference.from),
+        armor: buildProficiency("Armor Proficiency"),
     });
 
     assert.deepStrictEqual(output, expected);

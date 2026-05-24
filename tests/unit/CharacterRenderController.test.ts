@@ -9,6 +9,7 @@ import {ModelErrorContainer, Result} from "@/model/Error";
 import assert from "node:assert";
 import {ABILITIES, ALL_SKILLS, Skill} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {Reference} from "@/model/Dataview";
 
 class TestContext {
     readonly dv = new MockDataView(MockPage.of("Me"));
@@ -16,6 +17,7 @@ class TestContext {
     readonly proficiencyRepository = mocker.mockRepository(WeaponRepository);
     readonly characterLogicController: CharacterLogicController = mocker.mock(CharacterLogicController);
     readonly character: CalculatedCharacter = {
+        armorClass: 0, initiative: 0, passivePerception: 0,
         abilityBonusIndex: [],
         abilityChecks: {
             Strength: 0,
@@ -63,9 +65,9 @@ class TestContext {
             Persuasion: 0
         },
         speed: 0,
-        reference: "",
+        reference: new Reference(""),
         class: [],
-        race: "",
+        race: new Reference(""),
         weapons: [],
         money: {
             platinum: 0,
@@ -83,7 +85,9 @@ class TestContext {
             Wisdom: 0,
             Charisma: 0
         },
-        proficiencies: new ProficiencyIndex()
+        proficiencies: new ProficiencyIndex(),
+        features: [],
+        allFeatures: []
     };
 
     readonly tested = new CharacterRenderController(
@@ -94,15 +98,15 @@ class TestContext {
     )
 
     constructor() {
-        this.characterLogicController.calculateCharacter = mock.fn((_) => [this.character, new ModelErrorContainer()])
+        this.characterLogicController.calculateCharacter = mock.fn(async (_) => [this.character, new ModelErrorContainer()] as const)
     }
 
     getErrors() {
         const errorPrefix = "\n> [!failure]";
 
         const errors = this.dv.span.mock.calls
-            .map(call => call.arguments)
-            .filter(args => args[0].startsWith(errorPrefix))
+            .map(call => call.arguments.map(ref => ref.toString()))
+            .filter(([ref]) => ref.startsWith(errorPrefix))
             .map(([arg]: string[]) => {
                 const [title, ...messageLines] = arg.slice(errorPrefix.length).split("\n").filter(a => a);
                 return {
@@ -120,7 +124,7 @@ class TestContext {
 
 test("Report error if character doesn't exist", async () => {
     const context = new TestContext();
-    context.tested.renderCharacter("Me");
+    context.tested.renderCharacter(new Reference("Me"));
     assert.deepStrictEqual(context.getErrors().length, 1);
     assert.deepStrictEqual(context.dv.table.mock.calls, []);
 });
@@ -129,25 +133,7 @@ test("Ensure all tables are created", async () => {
     const context = new TestContext();
     context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
 
-    context.tested.renderCharacter("Me");
-
-    assert.deepStrictEqual(context.getErrors(), []);
-
-    assert.deepStrictEqual(
-        context.dv.table.mock.calls.map(call => call.arguments[0]),
-        [
-            ["Ability", "Score", "Check", "Save", "Affected by"],
-            ["Skill", "Score", "From Ability"],
-            ["Weapon", "Attack Bonus", "Damage", "Range"]
-        ]
-    );
-});
-
-test("Ensure all tables are created", async () => {
-    const context = new TestContext();
-    context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
-
-    context.tested.renderCharacter("Me");
+    await context.tested.renderCharacter(new Reference("Me"));
 
     assert.deepStrictEqual(context.getErrors(), []);
 
@@ -165,11 +151,11 @@ test("Ensure all ability values are rendered", async () => {
     const context = new TestContext();
     context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
 
-    context.tested.renderCharacter("Me");
+    await context.tested.renderCharacter(new Reference("Me"));
 
     assert.deepStrictEqual(context.getErrors(), []);
 
-    const [headers, rows] = context.dv.table.mock.calls[0].arguments as [string, string[]];
+    const [headers, rows] = context.dv.table.mock.calls[0].arguments;
 
     const numbers = Object.fromEntries(rows.map(([ability, score, check, savingThrow]) => [
         ability,
@@ -185,23 +171,23 @@ test("Ensure skill proficiency justifications are rendered correctly", async () 
     context.character.proficiencies = new ProficiencyIndex({
         skill: [
             {
-                justification: "Class",
+                justification: new Reference("Class"),
                 item: "Athletics",
                 type: "Proficiency",
             },
             {
-                justification: "Race",
+                justification: new Reference("Race"),
                 item: "Athletics",
                 type: "Expertise",
             }
         ]
     })
 
-    context.tested.renderCharacter("Me");
+    await context.tested.renderCharacter(new Reference("Me"));
 
     assert.deepStrictEqual(context.getErrors(), []);
 
-    const [headers, rows] = context.dv.table.mock.calls[1].arguments as [string, string[]];
+    const [headers, rows] = context.dv.table.mock.calls[1].arguments;
 
     const justifications = Object.fromEntries(rows.map(([skill, score, fromAbility]) => [
         skill,
@@ -215,7 +201,7 @@ test("Ensure skills and abilities are rendered correctly", async () => {
     const context = new TestContext();
     context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
 
-    context.tested.renderCharacter("Me");
+    await context.tested.renderCharacter(new Reference("Me"));
 
     assert.deepStrictEqual(context.getErrors(), []);
 
@@ -225,7 +211,7 @@ test("Ensure skills and abilities are rendered correctly", async () => {
     orderedSkills.sort();
 
     const [abilitiesInTable, skillsInTable] = context.dv.table.mock.calls
-        .map(({ arguments: [_headers, values] }) => values.map(([descriptor]: [string]) => descriptor));
+        .map(({ arguments: [_headers, values] }) => values.map(([descriptor]) => descriptor));
 
     assert.deepStrictEqual(abilitiesInTable, orderedAbilities);
     assert.deepStrictEqual(skillsInTable, orderedSkills);

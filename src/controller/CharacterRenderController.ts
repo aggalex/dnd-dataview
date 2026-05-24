@@ -1,5 +1,5 @@
 import {RenderController} from "@/controller/RenderController";
-import {Reference, DataView} from "@/model/Dataview";
+import {Reference, DataView, getPath} from "@/model/Dataview";
 import {CharacterRepository} from "@/repository/CharacterRepository";
 import {CalculatedCharacter} from "@/model/Character";
 import {ModelError, ModelErrorContainer} from "@/model/Error";
@@ -15,6 +15,8 @@ import {Tag} from "@/model/render/Tag";
 import {Container} from "@/model/render/Container";
 import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {StringUtil} from "@/util";
+import {Section} from "@/model/render/Section";
+import {Embedding} from "@/model/render/Embeding";
 
 export class CharacterRenderController extends RenderController {
 
@@ -22,13 +24,12 @@ export class CharacterRenderController extends RenderController {
         dv: DataView,
         private readonly characterRepository = new CharacterRepository(dv),
         private readonly weaponRepository = new WeaponRepository(dv),
-        private readonly characterLogicController = new CharacterLogicController(dv)
+        private readonly characterLogicController = new CharacterLogicController(dv),
     ) {
         super(dv);
     }
 
-
-    renderCharacter(ref?: Reference) {
+    async renderCharacter(ref?: Reference) {
         ref = ref ?? this.dv.current().file.link
 
         const errors = new ModelErrorContainer();
@@ -52,45 +53,29 @@ export class CharacterRenderController extends RenderController {
             return;
         }
 
-        const [calculatedCharacter, calculationErrors] = this.characterLogicController.calculateCharacter(character);
+        const [calculatedCharacter, calculationErrors] = await this.characterLogicController.calculateCharacter(character);
         errors.addAll(calculationErrors);
 
         const state = this.getState(calculatedCharacter);
         const abilities = this.getAbilityTable(calculatedCharacter);
         const skills = this.getSkillsTable(calculatedCharacter);
+        const feats = this.getFeatures(calculatedCharacter);
         const [weapons, weaponErrors] = this.getWeapons(calculatedCharacter);
-        
-        weaponErrors.addAll(weaponErrors);
-        
+        errors.addAll(weaponErrors);
+
         this.renderErrors(errors);
 
         new Container([
             ...state,
             abilities,
             skills,
-            weapons
+            weapons,
+            feats
         ]).renderIn(this.dv);
     }
 
     private getReferenceString(ref: Proficiency<unknown>[]) {
-        return ref.map(ref => `${this.getLinkString(ref.justification)} (${ref.type})`).join(', ');
-    }
-
-    private getLinkString(ref: Reference) {
-        let name: string
-        let path: string | undefined = undefined
-        if (typeof ref === "string") {
-            name = ref;
-        } else {
-            path = ref.path;
-            if (!ref.display) {
-                const path = ref.path.split("/");
-                name = path[path.length - 1].split(".")[0];
-            } else {
-                name = ref.display
-            }
-        }
-        return `[[${[path, name].filter(a => a).join("|")}]]`
+        return ref.map(ref => `${ref.justification} (${ref.type})`).join(', ');
     }
 
     private getWeapons(character: CalculatedCharacter): [Table, ModelErrorContainer] {
@@ -104,7 +89,7 @@ export class CharacterRenderController extends RenderController {
 
         const weaponRows = weapons
             .map(({reference, attack, damage, reach, range}) => [
-                this.getLinkString(reference),
+                reference.toString(),
                 this.signed(attack),
                 damage ?? "",
                 reach ? reach + (range ? ` (${range})` : "") : range ?? ""
@@ -137,7 +122,7 @@ export class CharacterRenderController extends RenderController {
         const abilityJustifications = Object.fromEntries(ABILITIES.map(ability => [
             ability,
             character.abilityBonusIndex.filter(abilityBonus => ability in abilityBonus && abilityBonus[ability] !== 0)
-                .map(abilityBonus => `${this.getLinkString(abilityBonus.justification)}`)
+                .map(abilityBonus => `${abilityBonus.justification}`)
                 .join(", ")
         ]))
 
@@ -150,6 +135,15 @@ export class CharacterRenderController extends RenderController {
         ] as const);
 
         return new Table(["Ability", "Score", "Check", "Save", "Affected by"] as const, abilityRows);
+    }
+
+    private getFeatures(character: CalculatedCharacter) {
+        const featureIndex = Object.groupBy(character.allFeatures, feat => feat.from? getPath(feat.from) : "Unknown");
+
+        return new Section({ header: "Features", level: 2 },
+            Object.entries(featureIndex).map(([key, value]) => new Section({ header: "From " + key, level: 3 },
+                value?.map(feat => new Embedding(feat.reference)) ?? []))
+        )
     }
 
     private getState(character: CalculatedCharacter): Tag[] {

@@ -1,5 +1,5 @@
 import {Repository} from "@/repository/Repository";
-import {pageSchema, referenceSchema} from "@/model/Dataview";
+import {Reference} from "@/model/Dataview";
 import {coerce} from "@/model/Util";
 import {z} from "zod";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
@@ -10,9 +10,9 @@ export class BackgroundRepository extends Repository<Background> {
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
 
     readonly required = z.looseObject({
-        "Feature": coerce.array(referenceSchema),
-        "Language": coerce.array(referenceSchema),
-        "Trait": coerce.array(referenceSchema),
+        "Feature": coerce.array(Reference.schema),
+        "Language": coerce.array(Reference.schema),
+        "Trait": coerce.array(Reference.schema),
     })
         .and(this.proficiencyRepository.required.transform(proficiencies => ({ proficiencies })))
         .and(this.reference)

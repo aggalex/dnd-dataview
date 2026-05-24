@@ -1,18 +1,18 @@
 import {Repository} from "@/repository/Repository";
 import {Race, sizeSchema} from "@/model/Race";
-import {pageSchema, referenceSchema} from "@/model/Dataview";
 import {coerce} from "@/model/Util";
 import {z} from "zod";
 import {Hierarchical, HierarchyResolver, resolveHierarchy} from "@/model/Hierarchical";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {ProficiencyIndex} from "@/model/Proficiency";
+import {Reference} from "@/model/Dataview";
 
 const raceSchema = z.looseObject({
-    "Feature": coerce.array(referenceSchema),
-    "Language": coerce.array(referenceSchema),
+    "Feature": coerce.array(Reference.schema),
+    "Language": coerce.array(Reference.schema),
     "Speed": z.coerce.number().optional().default(30),
     "Size": sizeSchema.optional().default("Medium"),
-    "Trait": coerce.array(referenceSchema),
+    "Trait": coerce.array(Reference.schema),
 });
 
 const raceHierarchyResolver: HierarchyResolver<Race> = (race, parent): Race => {
@@ -33,7 +33,7 @@ export class RaceRepository extends Repository<Hierarchical<Race>> {
 
     override readonly required = raceSchema
         .extend({
-            inherit: referenceSchema.optional().transform((ref, ctx) =>
+            inherit: Reference.schema.optional().transform((ref, ctx) =>
                 ref ? this.getByReference(ref)
                     ?.mapErr(err => err.issues.forEach(issue => ctx.addIssue(issue as (typeof issue & Record<string, unknown>))))
                     .unwrapOrElse(() => undefined)

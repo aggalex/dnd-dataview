@@ -7,6 +7,6 @@ export class Embed extends Widget {
     }
 
     override renderIn(dv: DataView) {
-        dv.span(typeof this.reference == 'string' ? `[[${this.reference}]]` : this.reference)
+        dv.span(`!${this.reference}`)
     }
 }

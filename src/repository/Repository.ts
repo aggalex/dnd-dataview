@@ -1,7 +1,6 @@
 import {Reference, DataView, Page, pageSchema} from "@/model/Dataview";
 import {z, ZodError} from "zod";
 import {Result} from "@/model/Error";
-import {Hierarchical, HierarchyResolver} from "@/model/Hierarchical";
 
 const referenceSchema = pageSchema.transform(({file}) => ({ reference: file.link }));
 
@@ -13,6 +12,14 @@ export abstract class Repository<Item> {
 
     abstract readonly required: z.ZodType<Item>;
     readonly warnings: z.ZodType = z.looseObject({});
+
+    protected getPage(reference: Reference) {
+        if (typeof reference === "string") {
+            return this.dv.page(reference)
+        } else {
+            return this.dv.page(reference.path)
+        }
+    }
 
     parse(page: Page): RepositoryResult<Item> {
         const result = this.required.safeParse(page);
@@ -31,11 +38,7 @@ export abstract class Repository<Item> {
     }
 
     getByReference(reference: Reference): RepositoryResult<Item> | undefined {
-        if (typeof reference === "object") {
-            reference = reference.path
-        }
-
-        const page = this.dv.page(reference);
+        const page = this.getPage(reference);
         return page? this.parse(page): undefined;
     }
 }

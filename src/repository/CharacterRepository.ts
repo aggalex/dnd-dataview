@@ -1,6 +1,6 @@
 import {Repository} from "@/repository/Repository";
 import {Character, CharacterClass, Money} from "@/model/Character";
-import {pageSchema, referenceSchema} from "@/model/Dataview";
+import {Reference} from "@/model/Dataview";
 import {z} from "zod";
 import {coerce} from "@/model/Util";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
@@ -11,7 +11,7 @@ export class CharacterRepository extends Repository<Character> {
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
     private readonly abilityRollRepository = new AbilityRollRepository(this.dv);
 
-    private readonly characterClassSchema = z.tuple([referenceSchema, z.number(), referenceSchema.optional()] as const)
+    private readonly characterClassSchema = z.tuple([Reference.schema, z.number(), Reference.schema.optional()] as const)
         .transform(([cls, level, subclass]): CharacterClass => ({
             class: cls, level, subclass
         }));
@@ -26,12 +26,13 @@ export class CharacterRepository extends Repository<Character> {
 
     readonly required = z.looseObject({
         "Class": coerce.array(this.characterClassSchema),
-        "Race": referenceSchema,
-        "Background": referenceSchema.optional(),
-        "Armor": referenceSchema.optional(),
-        "Weapon": coerce.array(referenceSchema),
-        "Language": coerce.array(referenceSchema),
+        "Race": Reference.schema,
+        "Background": Reference.schema.optional(),
+        "Armor": Reference.schema.optional(),
+        "Weapon": coerce.array(Reference.schema),
+        "Language": coerce.array(Reference.schema),
         "Max HP": z.coerce.number().optional().default(0),
+        "Feature": coerce.array(Reference.schema),
     })
         .and(this.abilityRollRepository.required.transform(abilityRolls => ({ abilityRolls })))
         .and(this.proficiencyRepository.required.transform(proficiencies => ({ proficiencies })))
@@ -46,15 +47,16 @@ export class CharacterRepository extends Repository<Character> {
                 background: character.Background,
                 armor: character.Armor,
                 weapons: character.Weapon,
+                features: character.Feature,
                 maxHP: character["Max HP"],
                 money,
                 abilityRolls,
-                proficiencies
+                proficiencies,
             } satisfies Character
         })
 
     readonly warnings = z.looseObject({
-        "Background": referenceSchema,
+        "Background": Reference.schema,
         "Max HP": z.coerce.number(),
     })
 }

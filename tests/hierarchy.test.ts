@@ -3,6 +3,7 @@ import {MockDataView, MockPage} from "@tests/mock.test";
 import assert from "node:assert";
 import {RaceRepository} from "@/repository/RaceRepository";
 import {ProficiencyIndex} from "@/model/Proficiency";
+import {Reference} from "@/model/Dataview";
 
 test("Ensure hierarchy is resolved", async () => {
     const dv = new MockDataView(MockPage.of("Grugach Elf", {
@@ -15,7 +16,7 @@ test("Ensure hierarchy is resolved", async () => {
 
     const tested = new RaceRepository(dv);
 
-    const result = tested.getByReference("Grugach Elf");
+    const result = tested.getByReference(new Reference("Grugach Elf"));
 
     const { output, warnings } = result!.unwrap()
 
@@ -26,12 +27,12 @@ test("Ensure hierarchy is resolved", async () => {
             {
                 item: "Strength",
                 type: "Proficiency",
-                justification: { path: "Grugach Elf" },
+                justification: new Reference("Grugach Elf")
             },
             {
                 item: "Charisma",
                 type: "Proficiency",
-                justification: { path: "Elf" },
+                justification: new Reference("Elf"),
             }
         ]
     }));

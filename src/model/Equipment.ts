@@ -14,7 +14,7 @@ export type Weapon = z.infer<typeof weaponSchema> & {
 }
 
 export const armorSchema = z.object({
-    armorClass: z.string().optional(),
+    armorClass: z.coerce.number().optional(),
     type: z.string().optional(),
     weight: z.string().optional(),
 })

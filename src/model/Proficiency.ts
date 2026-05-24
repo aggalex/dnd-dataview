@@ -1,9 +1,9 @@
 import {z} from "zod";
-import {Reference, referenceSchema} from "@/model/Dataview";
+import {Reference} from "@/model/Dataview";
 import {Ability, abilitySchema, Skill} from "@/model/Abilities";
 
 export const baseBonusSchema = z.object({
-    justification: referenceSchema
+    justification: Reference.schema
 });
 
 export type Bonus = z.infer<typeof baseBonusSchema>;
@@ -15,7 +15,7 @@ export const proficiencySchema = <T extends z.ZodType<any>>(item: T) => baseBonu
 
 export type Proficiency<T> = z.infer<ReturnType<typeof proficiencySchema<z.ZodType<T>>>>;
 
-export const weaponProficiencySchema = proficiencySchema(referenceSchema)
+export const weaponProficiencySchema = proficiencySchema(Reference.schema)
 
 export type WeaponProficiency = z.infer<typeof weaponProficiencySchema>;
 
