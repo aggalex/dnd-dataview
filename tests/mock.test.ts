@@ -3,12 +3,12 @@ import { basename } from "node:path";
 import {mock} from "node:test";
 import {Repository} from "@/repository/Repository";
 import {Result} from "@/model/Error";
-import {ZodError} from "zod";
+import {z, ZodError} from "zod";
 import {Controller} from "@/controller/Controller";
 
 export class MockPage implements Page {
 
-    readonly file: { name: string; path: string; link: Reference };
+    readonly file: { name: string; path: string; link: z.infer<typeof Reference.schema> };
 
     private constructor(path: string) {
         this.file = {
@@ -52,7 +52,6 @@ export class MockDataView implements DataView {
     query = mock.fn(async (item) => ({ value: { values: [] }}))
     span = mock.fn(this.#renderSpan.bind(this))
     table = mock.fn(this.#renderTable.bind(this))
-    fileLink = mock.fn(this.#renderFileLink.bind(this))
 
     addPage(page: Page) {
         const ref = referenceToString(page.file.link);

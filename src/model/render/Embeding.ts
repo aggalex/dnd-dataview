@@ -7,9 +7,6 @@ export class Embedding extends Widget {
     }
 
     renderIn(dv: DataView): void {
-        const path = typeof this.reference === "string"? this.reference : this.reference.path;
-        const displayName = typeof this.reference === "object"? this.reference.display: undefined;
-
-        dv.fileLink(path, true, displayName);
+        dv.paragraph(`!${this.reference}`);
     }
 }

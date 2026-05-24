@@ -6,6 +6,7 @@ import assert from "node:assert";
 import {ABILITIES, AbilityScores, Skill, SKILLS} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {Reference} from "@/model/Dataview";
+import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 
 const baseCharacter: Character = {
     abilityRolls: {
@@ -39,12 +40,10 @@ test("Ensure skills and abilities are calculated correctly", async () => {
     const character: Character = Object.create(baseCharacter);
 
     const dv = new MockDataView(MockPage.of(character.reference.path));
-    const logicController = new CharacterLogicController(dv);
+    const errorViewModel = new ErrorViewModel();
+    const logicController = new CharacterLogicController(dv, errorViewModel);
 
-    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
-
-    const errors = modelErrorController.getErrors();
-    assert.deepStrictEqual(errors, []);
+    const calculatedCharacter = await logicController.calculateCharacter(character);
 
     const expectedChecks: AbilityScores = {
         Strength: 1,
@@ -78,11 +77,13 @@ test("Ensure ability bonuses are considered skills and abilities are calculated 
     dv.addPage(race);
     dv.addPage(cls);
 
-    const logicController = new CharacterLogicController(dv);
+    const errorViewModel = new ErrorViewModel();
 
-    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
+    const logicController = new CharacterLogicController(dv, errorViewModel);
 
-    const errors = modelErrorController.getErrors();
+    const calculatedCharacter = await logicController.calculateCharacter(character);
+
+    const errors = errorViewModel.errors.getErrors();
     assert.deepStrictEqual(errors, []);
 
     const expectedChecks: AbilityScores = {
@@ -136,11 +137,13 @@ test("Ensure proficiencies are considered skills and abilities are calculated co
     dv.addPage(race);
     dv.addPage(cls);
 
-    const logicController = new CharacterLogicController(dv);
+    const errorViewModel = new ErrorViewModel();
 
-    const [calculatedCharacter, modelErrorController] = await logicController.calculateCharacter(character);
+    const logicController = new CharacterLogicController(dv, errorViewModel);
 
-    const errors = modelErrorController.getErrors();
+    const calculatedCharacter = await logicController.calculateCharacter(character);
+
+    const errors = errorViewModel.errors.getErrors();
     assert.deepStrictEqual(errors, []);
 
     const expectedChecks: AbilityScores = {

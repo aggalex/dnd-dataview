@@ -6,6 +6,10 @@ export interface Feature {
     armorClass?: number,
     proficiencies: ProficiencyIndex,
     from?: Reference,
+    for?: {
+        class: Reference,
+        level: number
+    }
 }
 
 export interface FeatureProvider {

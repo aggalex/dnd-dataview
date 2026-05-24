@@ -1,6 +1,7 @@
-import {z, ZodError, ZodSafeParseResult} from "zod";
+import {z, ZodE164, ZodError, ZodSafeParseResult} from "zod";
 import {Reference} from "@/model/Dataview";
 import {RepositoryResult} from "@/repository/Repository";
+import {$ZodErrorTree, $ZodIssue} from "zod/v4/core";
 
 export interface ICharacterError {
     section: string;
@@ -23,15 +24,6 @@ export class ModelError extends Error implements ICharacterError {
         this.message = message;
         this.level = level;
     }
-
-    static fromZod(zodError: ZodError, reference: Reference, section: string, level: "Error" | "Warning"): ModelError {
-        return new ModelError({
-            section,
-            level,
-            title: `Issues on page ${reference}`,
-            message: `${z.prettifyError(zodError)}`,
-        });
-    }
 }
 
 export class ModelErrorContainer extends Error {
@@ -44,73 +36,31 @@ export class ModelErrorContainer extends Error {
         this.errors.push(new ModelError(props));
     }
 
-    addAll(errorContainer: ModelErrorContainer) {
-        this.errors.push(...errorContainer.errors);
-        return errorContainer.isOk();
-    }
-
     isOk() {
         return !this.errors.some(err => err.level === "Error");
     }
 
-    checkpoint() {
-        if (!this.isOk()) {
-            throw this;
-        }
-    }
-
-    addModelErrors<T>(res: RepositoryResult<T>, ref: Reference, section: string): T | undefined {
-        const outputRes = res
-            .mapErr(err => {
-                this.add(ModelError.fromZod(err, ref, section, "Error"));
-                return undefined;
-            })
-            .map(({ output, warnings }) => {
-                warnings && this.add(ModelError.fromZod(warnings, ref, section, "Warning"));
-                return output;
-            });
-
-        return outputRes.get();
-    }
-
-    // pageOrError(query, errorProps) {
-    //     const item = this.dv.page(query);
-    //     if (!item) {
-    //         this.add(errorProps);
-    //     }
-    //     return item;
-    // }
-
     getErrors() {
         return this.errors;
     }
-
-    intoResult<Item>(f: () => Item): Result<Item, ModelErrorContainer> {
-        if (this.isOk()) {
-            return Result.ok(f());
-        } else {
-            return Result.error(this);
-        }
-    }
-
 }
 
 export interface Get<T> {
     get(): T;
 }
 
+export interface ResultTransformer<T, E, T1, E1> {
+    map(t: T): T1,
+    mapErr(e: E): E1,
+}
+
+export type OkOf<R> = R extends Result<infer T, never>? T: never;
+export type ErrOf<R> = R extends Result<never, infer T>? T: never;
+
 export abstract class Result<T, E> implements Get<T | E> {
     protected constructor(readonly ok: boolean) {
 
     };
-
-    static fromZod<T>(res: ZodSafeParseResult<T>, reference: Reference, section: string, level: "Error" | "Warning"): Result<T, ModelError> {
-        if (!res.success) {
-            return Result.error(ModelError.fromZod(res.error, reference, section, level));
-        } else {
-            return Result.ok(res.data)
-        }
-    }
 
     isOk(): this is Get<T> {
         return this.ok;
@@ -118,6 +68,10 @@ export abstract class Result<T, E> implements Get<T | E> {
 
     isError(): this is Get<E> {
         return !this.ok;
+    }
+
+    transform<U>(res: (self: this) => U): U {
+        return res(this);
     }
 
     abstract get(): T | E;

@@ -5,9 +5,12 @@ import {z, ZodError} from "zod";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {coerce} from "@/model/Util";
 import {Result} from "@/model/Error";
+import {FeatureRepository} from "@/repository/FeatureRepository";
+import {Feature} from "@/model/Feature";
 
 export class ClassRepository extends Repository<Class> {
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
+    private readonly featureRepository = new FeatureRepository(this.dv);
 
     readonly base = z.object({
         "Hit Dice": z.string().optional().default("d8"),
@@ -34,12 +37,16 @@ export class ClassRepository extends Repository<Class> {
             error: "Missing Hit Dice",
         });
 
-    async getFeaturesByReferenceAndLevel(reference: Reference): Promise<RepositoryResult<Reference[][]>> {
+    async getFeaturesByReference(reference: Reference): Promise<RepositoryResult<Feature[]>> {
         const pageFeatures = z.looseObject({
             Feature: coerce.array(Reference.schema)
         })
 
         const page = this.getPage(reference);
+
+        if (!page) {
+            return Result.error(new ZodError([]));
+        }
 
         const explicitFeaturesResult = page && pageFeatures.safeParse(page ?? {});
 
@@ -47,48 +54,35 @@ export class ClassRepository extends Repository<Class> {
             return Result.error(explicitFeaturesResult.error);
         }
 
-        const explicitFeatures = explicitFeaturesResult?.data;
+        const featureRefs = await this.dv.query(`LIST FROM "Features"`);
 
-        const features = await this.dv.query(`LIST FROM "Features"`);
+        const errors: ZodError[] = []
 
-        const featurePageQuery = z.looseObject({
-            class: Reference.schema,
-            level: z.number().optional().default(0),
-        })
+        const features = featureRefs.value.values.flatMap(featureRef => {
+            const descriptor = this.featureRepository.getByReference(featureRef)
+                ?.map(res => res.output)
+                .mapErr(err => {
+                    err.issues.forEach(issue => issue.path.unshift(featureRef.name))
+                    errors.push(err);
+                })
+                .get();
 
-        const errors = []
-        const output: Reference[][] = []
-
-        for (const featureRef of features.value.values) {
-            const page = this.getPage(featureRef);
-
-            if (!page) {
-                continue;
+            if (!descriptor?.for) {
+                return [];
             }
 
-            const result = featurePageQuery.safeParse(page);
-            if (!result.success) {
-                errors.push(result.error);
-                continue;
-            }
-
-            const descriptor = result.data;
-            const classPage = this.getPage(descriptor.class);
+            const classPage = this.getPage(descriptor.for.class);
             if (!classPage || classPage.file.link !== page.file.link) {
-                continue;
+                return [];
             }
 
-            if (output[descriptor.level] === undefined) {
-                output[descriptor.level] = []
-            }
-
-            output[descriptor.level].push(featureRef);
-        }
+            return [descriptor]
+        })
 
         const warnings = errors.filter(a => a) as ZodError[];
         const warning = warnings && warnings.length > 0 ? new ZodError(warnings.flatMap(err => err.issues)): undefined;
 
-        return Result.ok({ output, warnings: warning });
+        return Result.ok({ output: features, warnings: warning });
     }
 
 }

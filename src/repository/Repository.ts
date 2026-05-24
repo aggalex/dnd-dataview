@@ -14,11 +14,7 @@ export abstract class Repository<Item> {
     readonly warnings: z.ZodType = z.looseObject({});
 
     protected getPage(reference: Reference) {
-        if (typeof reference === "string") {
-            return this.dv.page(reference)
-        } else {
-            return this.dv.page(reference.path)
-        }
+        return this.dv.page(reference.path)
     }
 
     parse(page: Page): RepositoryResult<Item> {
@@ -56,14 +52,6 @@ type MapRepositoryResults<Arr extends [...any[]]> = {
 } & Array<RepositoryResult<RepositoryResultItemOf<Arr[number]>>>;
 
 export const RepositoryResult = {
-    combine<Item>(...results: RepositoryResult<Item[]>[]): RepositoryResult<Item[]> {
-        return this.of(results)
-            .map(({output, warnings}: SuccessfulQueryResult<Item[][]>): SuccessfulQueryResult<Item[]> => ({
-                output: output.flatMap(res => res),
-                warnings
-            })) as RepositoryResult<Item[]>;
-    },
-
     of<Items extends RepositoryResult<unknown>[]>(results: Items): RepositoryResult<MapRepositoryResults<Items>> {
         const errors = results.filter(res => !res.ok);
 

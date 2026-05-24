@@ -10,9 +10,11 @@ import assert from "node:assert";
 import {ABILITIES, ALL_SKILLS, Skill} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {Reference} from "@/model/Dataview";
+import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 
 class TestContext {
     readonly dv = new MockDataView(MockPage.of("Me"));
+    readonly errorViewModel = new ErrorViewModel();
     readonly characterRepository = mocker.mockRepository(CharacterRepository);
     readonly proficiencyRepository = mocker.mockRepository(WeaponRepository);
     readonly characterLogicController: CharacterLogicController = mocker.mock(CharacterLogicController);
@@ -92,13 +94,14 @@ class TestContext {
 
     readonly tested = new CharacterRenderController(
         this.dv,
+        this.errorViewModel,
+        this.characterLogicController,
         this.characterRepository,
         this.proficiencyRepository,
-        this.characterLogicController
     )
 
     constructor() {
-        this.characterLogicController.calculateCharacter = mock.fn(async (_) => [this.character, new ModelErrorContainer()] as const)
+        this.characterLogicController.calculateCharacter = mock.fn(async (_) => this.character)
     }
 
     getErrors() {
@@ -124,7 +127,7 @@ class TestContext {
 
 test("Report error if character doesn't exist", async () => {
     const context = new TestContext();
-    context.tested.renderCharacter(new Reference("Me"));
+    await context.tested.renderCharacter(new Reference("Me"));
     assert.deepStrictEqual(context.getErrors().length, 1);
     assert.deepStrictEqual(context.dv.table.mock.calls, []);
 });
@@ -215,4 +218,42 @@ test("Ensure skills and abilities are rendered correctly", async () => {
 
     assert.deepStrictEqual(abilitiesInTable, orderedAbilities);
     assert.deepStrictEqual(skillsInTable, orderedSkills);
+});
+
+test("Features are rendered correctly", async () => {
+    const context = new TestContext();
+    context.characterRepository.getByReference = mock.fn(() => Result.ok({ output: context.character }));
+    context.character.allFeatures = [
+        {
+            reference: new Reference("Race Feat 1"),
+            proficiencies: new ProficiencyIndex({}),
+            from: new Reference("Race"),
+        },
+        {
+            reference: new Reference("Race Feat 2"),
+            proficiencies: new ProficiencyIndex({}),
+            from: new Reference("Race"),
+        },
+        {
+            reference: new Reference("Class Feat 1"),
+            proficiencies: new ProficiencyIndex({}),
+            from: new Reference("Class"),
+        }
+    ]
+
+    await context.tested.renderCharacter(new Reference("Me"));
+
+    assert.deepStrictEqual(context.getErrors(), []);
+
+    const headers = context.dv.header.mock.calls
+        .map(({ arguments: [ _level, title ] }) => title);
+
+    const feats = context.dv.paragraph.mock.calls
+        .filter(({ arguments: [text] }) => typeof text == "string" && text.startsWith("![["))
+        .map(({ arguments: [text] }) => /\[\[([\w ]*)]]/.exec(text as string))
+        .filter((arr): arr is NonNullable<typeof arr> => !!arr)
+        .map(arr => arr[1])
+
+    assert.deepStrictEqual(new Set(headers), new Set(["Features", "From Race", "From Class"]));
+    assert.deepStrictEqual(feats, context.character.allFeatures.map(feat => feat.reference.path));
 });

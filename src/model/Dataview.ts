@@ -22,19 +22,23 @@ export class Reference {
     }
 
     toString() {
-        let name: string | undefined
-        if (!this.display) {
-            const path = this.path.split("/");
-            name = path[path.length - 1].split(".")[0];
-        } else {
-            name = this.display
-        }
+        let name: string | undefined = this.name
 
         if (name === this.path) {
             name = undefined
         }
+
         return `[[${[this.path, name].filter(a => a).join("|")}]]`
 
+    }
+
+    get name() {
+        if (!this.display) {
+            const path = this.path.split("/");
+            return path[path.length - 1].split(".")[0];
+        } else {
+            return this.display
+        }
     }
 }
 
@@ -68,7 +72,6 @@ export interface DataView {
     page(query: string): Page | undefined;
     query(query: string): Promise<{ value: { values: Reference[] }}>;
     span(text: string[] | string): void;
-    fileLink(path: string, embed?: boolean, displayName?: string): void;
     el(tag: string): void;
     table(headers: string[], rows: readonly (readonly unknown[])[]): void;
     header(level: number, text: string): void;

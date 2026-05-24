@@ -1,7 +1,6 @@
 import {DataView, Reference} from "@/model/Dataview";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {CalculatedCharacter, Character} from "@/model/Character";
-import {ModelError, ModelErrorContainer} from "@/model/Error";
 import {ABILITIES, Ability, AbilityBonusIndex, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
@@ -11,12 +10,14 @@ import {ArmorRepository} from "@/repository/EquipmentRepository";
 import {FeatureProviderRepository, FeatureRepository} from "@/repository/FeatureRepository";
 import {ClassRepository} from "@/repository/ClassRepository";
 import {BackgroundRepository} from "@/repository/BackgroundRepository";
-import {Feature, FeatureProvider} from "@/model/Feature";
+import {FeatureProvider} from "@/model/Feature";
+import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 
 export class CharacterLogicController extends Controller {
 
     constructor(
         dv: DataView,
+        private readonly errorViewModel: ErrorViewModel,
         private readonly abilityBonusRepository = new AbilityBonusRepository(dv),
         private readonly proficiencyRepository = new ProficiencyRepository(dv),
         private readonly raceRepository = new RaceRepository(dv),
@@ -29,40 +30,34 @@ export class CharacterLogicController extends Controller {
         super(dv);
     }
 
-    async calculateCharacter(character: Character): Promise<[CalculatedCharacter, ModelErrorContainer]> {
-        const errors = new ModelErrorContainer();
+    async calculateCharacter(character: Character): Promise<CalculatedCharacter> {
 
         const proficiencyBonus = this.calculateProficiencyBonus(character);
 
         const bonusProviders = this.getBonusProviders(character);
         const proficiencies = new ProficiencyIndex(...bonusProviders
-            .map(ref => {
-                const res = this.proficiencyRepository.getByReference(ref);
-                return res && errors.addModelErrors(res, ref, "Proficiency")
-            })
+            .map(ref => this.proficiencyRepository.getByReference(ref)
+                    ?.transform(this.errorViewModel.handle(ref, "Proficiency")))
             .filter((res): res is ProficiencyIndex => !!res))
 
-        const [abilityBonusIndex, bonusIndexErrors] = this.calculateAbilityBonuses(bonusProviders);
-        errors.addAll(bonusIndexErrors);
-
+        const abilityBonusIndex = this.calculateAbilityBonuses(bonusProviders);
         const abilityScores = this.calculateAbilityScores(character, abilityBonusIndex);
         const abilityChecks = this.calculateAbilityChecks(abilityScores);
         const savingThrows = this.calculateSavingThrows(abilityChecks, proficiencies, proficiencyBonus);
         const skills = this.calculateSkills(abilityChecks, proficiencies, proficiencyBonus);
 
-        const raceRes = this.raceRepository.getByReference(character.race);
-        const race = raceRes && errors.addModelErrors(raceRes, character.race, "Race");
+        const race = this.raceRepository.getByReference(character.race)
+            ?.transform(this.errorViewModel.handle(character.race, "Race"));
 
-        const backgroundRes = character.background && this.backgroundRepository.getByReference(character.background);
-        const background = backgroundRes? errors.addModelErrors(backgroundRes, character.background!, "Background") : undefined;
+        const background = character.background && this.backgroundRepository.getByReference(character.background)
+            ?.transform(this.errorViewModel.handle(character.background, "Background"));
 
-        const armorRes = character.armor && this.armorRepository.getByReference(character.armor);
-        const armor = armorRes && character.armor? errors.addModelErrors(armorRes, character.armor, "Armor") : undefined;
+        const armor = character.armor && this.armorRepository.getByReference(character.armor)
+            ?.transform(this.errorViewModel.handle(character.armor, "Armor"));
 
-        const [classFeats, featErrors] = await this.collectClassFeatures(character);
-        errors.addAll(featErrors);
+        const classFeats = await this.collectClassFeatures(character);
 
-        return [{
+        return {
             ...character,
             proficiencyBonus,
             abilityBonusIndex,
@@ -79,11 +74,11 @@ export class CharacterLogicController extends Controller {
             armorClass: (armor?.armorClass ?? 10) + abilityChecks.Dexterity,
             allFeatures: [
                 ...classFeats,
-                ...this.getFeaturesOf(race, errors),
-                ...this.getFeaturesOf(character, errors),
-                ...this.getFeaturesOf(background, errors)
+                ...this.getFeaturesOf(race),
+                ...this.getFeaturesOf(character),
+                ...this.getFeaturesOf(background)
             ]
-        }, errors]
+        }
     }
 
     private getBonusProviders(character: Character): Reference[] {
@@ -105,14 +100,10 @@ export class CharacterLogicController extends Controller {
         return 1 + Math.ceil(levels / 4);
     }
 
-    private calculateAbilityBonuses(bonusProviders: Reference[]): [AbilityBonusIndex[], ModelErrorContainer] {
-        const errors = new ModelErrorContainer();
-
-        const abilityBonuses = bonusProviders
-            .map(ref => {
-                const res = this.abilityBonusRepository.getByReference(ref);
-                return res && errors.addModelErrors(res, ref, "Ability Scores");
-            })
+    private calculateAbilityBonuses(bonusProviders: Reference[]): AbilityBonusIndex[] {
+        return bonusProviders
+            .map(ref => this.abilityBonusRepository.getByReference(ref)
+                ?.transform(this.errorViewModel.handle(ref, "Ability Scores")))
             .filter((res): res is AbilityBonusIndex => !!res)
             .filter(res => {
                 const keys = Object.entries(res)
@@ -121,8 +112,6 @@ export class CharacterLogicController extends Controller {
 
                 return !(keys.length === 1 && keys[0] === "justification")
             });
-
-        return [abilityBonuses, errors];
     }
 
     private buildRecord<Key extends string, Value>(props: { from: readonly Key[], getValue(key: Key): Value }): { [key in Key]: Value }
@@ -171,55 +160,50 @@ export class CharacterLogicController extends Controller {
     }
 
     private async collectClassFeatures(character: Character) {
-        const errors = new ModelErrorContainer();
-
         const collect = async (ref: Reference) => {
-            const featRefs = errors.addModelErrors(await this.classRepository.getFeaturesByReferenceAndLevel(ref), ref, "Features");
+            const featRefs = (await this.classRepository.getFeaturesByReference(ref))
+                ?.transform(this.errorViewModel.handle(ref, "Features"));
 
-            return featRefs?.map(perLevel => perLevel
-                .map(ref => this.getFeature(ref, errors))
-                .filter((a): a is NonNullable<typeof a> => !!a)) ?? [];
+            return featRefs
         };
         const classFeatures = (await Promise.all(
             character.class.map(async (characterClass) => (await Promise.all(
                 [characterClass.class, characterClass.subclass]
                     .filter((item): item is NonNullable<typeof item> => !!item)
-                    .map(collect)))
-                    .filter((_, index) => characterClass.level >= index)
-                    .flatMap(feats => feats)
-                    .flatMap(feats => feats)
-            )
-        )).flatMap(feats => feats);
+                    .flatMap(collect)
+            ))
+                .flatMap(feats => feats ?? [])
+                .filter(feat => feat.for?.level ?? 0 < characterClass.level)))
+        ).flatMap(a => a)
 
         const explicitFeatures = character.class.map(characterClass =>
             [characterClass.class, characterClass.subclass]
                 .filter((item): item is NonNullable<typeof item> => !!item)
-                .map(ref => {
-                    const res = this.featureProviderRepository.getByReference(ref);
-                    if (!res) return undefined;
-                    return errors.addModelErrors(res, ref, "Features");
-                })
+                .map(ref => this.featureProviderRepository.getByReference(ref)
+                    ?.transform(this.errorViewModel.handle(ref, "Features"))
+                )
                 .filter((item): item is NonNullable<typeof item> => !!item)
-                .flatMap(provider => this.getFeaturesOf(provider, errors))
+                .flatMap(provider => this.getFeaturesOf(provider))
         ).flatMap(feat => feat)
 
         classFeatures.push(...explicitFeatures);
 
-        return [classFeatures, errors] as const;
+        return classFeatures
     }
 
-    private getFeature(ref: Reference, errors: ModelErrorContainer)  {
-        const res = this.featureRepository.getByReference(ref);
-        if (!res) return undefined;
-        const feat = errors.addModelErrors(res, ref, "Features");
+    private getFeature(ref: Reference, provider: FeatureProvider)  {
+        const feat = this.featureRepository.getByReference(ref)
+            ?.transform(this.errorViewModel.handle(ref, "Features"));
+
         if (!feat) return undefined;
-        feat.from = ref;
+
+        feat.from = provider.reference;
         return feat;
     }
 
-    private getFeaturesOf(provider: FeatureProvider | undefined, errorContainer: ModelErrorContainer) {
+    private getFeaturesOf(provider: FeatureProvider | undefined) {
         return provider?.features
-            .flatMap(ref => this.getFeature(ref, errorContainer))
+            .flatMap(ref => this.getFeature(ref, provider))
             .filter((item): item is NonNullable<typeof item> => !!item) ?? []
     }
 

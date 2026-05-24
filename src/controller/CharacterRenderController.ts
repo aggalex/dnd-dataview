@@ -2,7 +2,7 @@ import {RenderController} from "@/controller/RenderController";
 import {Reference, DataView, getPath} from "@/model/Dataview";
 import {CharacterRepository} from "@/repository/CharacterRepository";
 import {CalculatedCharacter} from "@/model/Character";
-import {ModelError, ModelErrorContainer} from "@/model/Error";
+import {ModelError} from "@/model/Error";
 import {WeaponRepository} from "@/repository/EquipmentRepository";
 import {Table} from "@/model/render/Table";
 import {Weapon} from "@/model/Equipment";
@@ -17,53 +17,52 @@ import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {StringUtil} from "@/util";
 import {Section} from "@/model/render/Section";
 import {Embedding} from "@/model/render/Embeding";
+import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 
 export class CharacterRenderController extends RenderController {
 
     constructor(
         dv: DataView,
+        errorViewModel: ErrorViewModel = new ErrorViewModel(),
+        private readonly characterLogicController = new CharacterLogicController(dv, errorViewModel),
         private readonly characterRepository = new CharacterRepository(dv),
         private readonly weaponRepository = new WeaponRepository(dv),
-        private readonly characterLogicController = new CharacterLogicController(dv),
     ) {
-        super(dv);
+        super(dv, errorViewModel);
     }
 
     async renderCharacter(ref?: Reference) {
         ref = ref ?? this.dv.current().file.link
 
-        const errors = new ModelErrorContainer();
+        const characterRes = this.characterRepository.getByReference(ref)
 
-        const characterRes = this.characterRepository.getByReference(ref);
         if (!characterRes) {
-            errors.add(new ModelError({
+            this.errorViewModel.errors.add(new ModelError({
                 level: "Error",
                 message: `Character ${ref} does not exist`,
                 section: "Character",
                 title: "Character not found"
             }));
-            this.renderErrors(errors);
+            this.renderErrors();
             return;
         }
 
-        const character = errors.addModelErrors(characterRes, ref, "Character");
+        const character = characterRes.transform(this.errorViewModel.handle(ref, "Character"));
 
         if (!character) {
-            this.renderErrors(errors);
+            this.renderErrors();
             return;
         }
 
-        const [calculatedCharacter, calculationErrors] = await this.characterLogicController.calculateCharacter(character);
-        errors.addAll(calculationErrors);
+        const calculatedCharacter = await this.characterLogicController.calculateCharacter(character);
 
         const state = this.getState(calculatedCharacter);
         const abilities = this.getAbilityTable(calculatedCharacter);
         const skills = this.getSkillsTable(calculatedCharacter);
         const feats = this.getFeatures(calculatedCharacter);
-        const [weapons, weaponErrors] = this.getWeapons(calculatedCharacter);
-        errors.addAll(weaponErrors);
+        const weapons = this.getWeapons(calculatedCharacter);
 
-        this.renderErrors(errors);
+        this.renderErrors();
 
         new Container([
             ...state,
@@ -78,13 +77,10 @@ export class CharacterRenderController extends RenderController {
         return ref.map(ref => `${ref.justification} (${ref.type})`).join(', ');
     }
 
-    private getWeapons(character: CalculatedCharacter): [Table, ModelErrorContainer] {
-        const errors = new ModelErrorContainer();
+    private getWeapons(character: CalculatedCharacter): Table {
         const weapons = character.weapons
-            .map(ref => {
-                const res = this.weaponRepository.getByReference(ref);
-                return res && errors.addModelErrors(res, ref, "Weapon > " + ref);
-            })
+            .map(ref => this.weaponRepository.getByReference(ref)
+                ?.transform(this.errorViewModel.handle(ref, "Weapon > " + ref)))
             .filter((res): res is Weapon => res != null)
 
         const weaponRows = weapons
@@ -95,10 +91,7 @@ export class CharacterRenderController extends RenderController {
                 reach ? reach + (range ? ` (${range})` : "") : range ?? ""
             ] as const)
 
-        return [
-            new Table(["Weapon", "Attack Bonus", "Damage", "Range"] as const, weaponRows),
-            errors
-        ];
+        return new Table(["Weapon", "Attack Bonus", "Damage", "Range"] as const, weaponRows)
     }
 
     private getSkillsTable(character: CalculatedCharacter): Table {
@@ -138,10 +131,10 @@ export class CharacterRenderController extends RenderController {
     }
 
     private getFeatures(character: CalculatedCharacter) {
-        const featureIndex = Object.groupBy(character.allFeatures, feat => feat.from? getPath(feat.from) : "Unknown");
+        const featureIndex = Object.groupBy(character.allFeatures, feat => feat.from?.name ?? "Unknown");
 
         return new Section({ header: "Features", level: 2 },
-            Object.entries(featureIndex).map(([key, value]) => new Section({ header: "From " + key, level: 3 },
+            Object.entries(featureIndex).map(([key, value]) => new Section({ header: "From " + key, level: 4 },
                 value?.map(feat => new Embedding(feat.reference)) ?? []))
         )
     }
