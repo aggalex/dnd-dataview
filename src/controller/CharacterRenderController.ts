@@ -80,8 +80,8 @@ export class CharacterRenderController extends RenderController {
     private getWeapons(character: CalculatedCharacter): Table {
         const weapons = character.weapons
             .map(ref => this.weaponRepository.getByReference(ref)
-                ?.transform(this.errorViewModel.handle(ref, "Weapon > " + ref)))
-            .filter((res): res is Weapon => res != null)
+                ?.transform(this.errorViewModel.handle(ref, "Weapons")))
+            .filter((res): res is NonNullable<typeof res> => res != null)
 
         const weaponRows = weapons
             .map(({reference, attack, damage, reach, range}) => [
@@ -134,7 +134,7 @@ export class CharacterRenderController extends RenderController {
         const featureIndex = Object.groupBy(character.allFeatures, feat => feat.from?.name ?? "Unknown");
 
         return new Section({ header: "Features", level: 2 },
-            Object.entries(featureIndex).map(([key, value]) => new Section({ header: "From " + key, level: 4 },
+            Object.entries(featureIndex).map(([key, value]) => new Section({ header: "From " + (value?.[0].from?.toString() ?? key), level: 4 },
                 value?.map(feat => new Embedding(feat.reference)) ?? []))
         )
     }

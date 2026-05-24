@@ -19,7 +19,7 @@ export class ErrorSection extends Widget {
 > [!${tag}] ${title}
 > 
 > ${message.trim().replaceAll("\n", "\n> ")}	
-		`);
+		`.trim());
     }
 
 }

@@ -3,9 +3,9 @@ import {z} from "zod";
 
 export const weaponSchema = z.object({
     attack: z.number().optional(),
-    damage: z.number().optional(),
+    damage: z.string().optional(),
     type: z.string().optional(),
-    range: z.number().optional(),
+    range: z.string().optional(),
     reach: z.enum(["melee", "ranged"]).optional(),
 });
 

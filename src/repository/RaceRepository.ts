@@ -2,7 +2,7 @@ import {Repository} from "@/repository/Repository";
 import {Race, sizeSchema} from "@/model/Race";
 import {coerce} from "@/model/Util";
 import {z} from "zod";
-import {Hierarchical, HierarchyResolver, resolveHierarchy} from "@/model/Hierarchical";
+import {Hierarchical, HierarchyResolver} from "@/model/Hierarchical";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {ProficiencyIndex} from "@/model/Proficiency";
 import {Reference} from "@/model/Dataview";

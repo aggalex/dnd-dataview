@@ -54,7 +54,7 @@ export class ErrorViewModel {
     private formatZodArrayItems(errorTree: $ZodErrorTree<unknown[], Issue> | $ZodErrorTree<[any, ...any[]], Issue>, padding: string) {
         return errorTree.items
             ?.map((tree, i) => tree
-                    ? padding + `${i}. [:: ${tree?.errors[0].issue.input}]\n${this.formatZodErrorTree(tree, padding + "  ")}`
+                    ? padding + `${i}. [:: ${tree?.errors[0].issue.input}] ${this.formatZodErrorTree(tree, padding + "  ")}`
                     : '')
             .join("\n") ?? ""
     }
@@ -62,12 +62,12 @@ export class ErrorViewModel {
     private formatZodObjectItems(errorTree: $ZodErrorTree<{ [key: string | symbol | number]: unknown }, Issue>, padding: string) {
         return Object.entries(errorTree.properties ?? {})
             .filter((entry): entry is [string, NonNullable<typeof entry[1]>] => !!entry[1])
-            .map(([key, value]) => padding + `- [${key}:: ${value?.errors[0].issue.input}]\n${this.formatZodErrorTree(value, padding + "  ")}`)
+            .map(([key, value]) => padding + `- [${key}:: ${value?.errors[0].issue.input}] ${this.formatZodErrorTree(value, padding + "  ")}`)
             .join("\n") ?? ""
     }
 
     private formatZodErrorTree<U>(errorTree: $ZodErrorTree<U, Issue>, padding: string = ""): string {
-        const base = errorTree.errors.map(err => `- ${err}`).join("\n");
+        const base = errorTree.errors.map(err => `${err.issue.message}`).join(",");
         const extra =
             'items' in errorTree? this.formatZodArrayItems(errorTree, padding):
             'properties' in errorTree? this.formatZodObjectItems(errorTree, padding):

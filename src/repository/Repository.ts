@@ -23,7 +23,7 @@ export abstract class Repository<Item> {
             return Result.error(result.error)
         }
 
-        const { error } = this.warnings.safeParse(page);
+        const { error } = this.warnings.safeParse(page, { reportInput: true });
 
         const output = result.data;
 
