@@ -1,5 +1,5 @@
 import {DataView, Reference} from "@/model/Dataview";
-import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {AbilityBonus, Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {CalculatedCharacter, Character} from "@/model/Character";
 import {ABILITIES, Ability, AbilityBonusProvider, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
@@ -13,6 +13,7 @@ import {BackgroundRepository} from "@/repository/BackgroundRepository";
 import {FeatureProvider} from "@/model/Feature";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Class} from "@/model/Class";
+import {Logger} from "@/controller/Logger";
 
 interface ClassDescriptor {
     class?: Class,
@@ -33,6 +34,7 @@ export class CharacterLogicController extends Controller {
         private readonly featureProviderRepository = new FeatureProviderRepository(dv),
         private readonly classRepository = new ClassRepository(dv),
         private readonly backgroundRepository = new BackgroundRepository(dv),
+        private readonly logger = new Logger(dv, CharacterLogicController.name)
     ) {
         super(dv);
     }
@@ -40,12 +42,6 @@ export class CharacterLogicController extends Controller {
     async calculateCharacter(character: Character): Promise<CalculatedCharacter> {
 
         const proficiencyBonus = this.calculateProficiencyBonus(character);
-
-        const bonusProviders = this.getBonusProviders(character);
-        const proficiencies = new ProficiencyIndex(...bonusProviders
-            .map(ref => this.proficiencyRepository.getByReference(ref)
-                    ?.transform(this.errorViewModel.handle(ref, "Proficiency")))
-            .filter((res): res is ProficiencyIndex => !!res))
 
         const race = this.raceRepository.getByReference(character.race)
             ?.transform(this.errorViewModel.handle(character.race, "Race"));
@@ -62,15 +58,21 @@ export class CharacterLogicController extends Controller {
             subclass: desc.subclass && this.classRepository.getByReference(desc.subclass)
                 ?.transform(this.errorViewModel.handle(desc.subclass, "Subclass")),
             level: desc.level
-        }) satisfies ClassDescriptor)
+        }) satisfies ClassDescriptor);
 
-        const abilityBonusProviders: AbilityBonusProvider[] = [
+        const dependencies = [
             character,
             ...classes
                 .flatMap(desc => [desc.class, desc.subclass]),
-            race,
             background
-        ].filter((a): a is NonNullable<typeof a> => !!a && !!a.abilityBonus && Object.keys(a.abilityBonus).length > 0)
+        ].filter((a): a is NonNullable<typeof a> => !!a);
+
+        const abilityBonusProviders: AbilityBonusProvider[] = [...dependencies, ...(race?.abilityBonusProviders ?? [])]
+            .filter((a): a is NonNullable<typeof a> => !!a.abilityBonus && Object.keys(a.abilityBonus).length > 0);
+
+        const proficiencies: ProficiencyIndex = new ProficiencyIndex(...[...dependencies, ...(race? [race]: [])]
+            .flatMap(item => item.proficiencies)
+            .filter((a): a is NonNullable<typeof a> => !!a))
 
         const abilityScores = this.calculateAbilityScores(character, abilityBonusProviders);
         const abilityChecks = this.calculateAbilityChecks(abilityScores);
@@ -101,17 +103,6 @@ export class CharacterLogicController extends Controller {
                 ...this.getFeaturesOf(background)
             ]
         }
-    }
-
-    private getBonusProviders(character: Character): Reference[] {
-        return [
-            ...character.class
-                .flatMap(cls => [cls.class, cls.subclass])
-                .filter((a): a is Reference => !!a),
-            ...[character.background].filter((a): a is Reference => !!a),
-            character.reference,
-            character.race
-        ].filter((ref): ref is Reference => !!ref)
     }
 
     private calculateProficiencyBonus(character: Character) {

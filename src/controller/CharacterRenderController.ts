@@ -18,6 +18,7 @@ import {StringUtil} from "@/util";
 import {Section} from "@/model/render/Section";
 import {Embedding} from "@/model/render/Embeding";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
+import {Logger} from "@/controller/Logger";
 
 export class CharacterRenderController extends RenderController {
 
@@ -27,6 +28,7 @@ export class CharacterRenderController extends RenderController {
         private readonly characterLogicController = new CharacterLogicController(dv, errorViewModel),
         private readonly characterRepository = new CharacterRepository(dv),
         private readonly weaponRepository = new WeaponRepository(dv),
+        private readonly logger = new Logger(dv, CharacterRenderController.name)
     ) {
         super(dv, errorViewModel);
     }
@@ -115,7 +117,7 @@ export class CharacterRenderController extends RenderController {
         const abilityJustifications = Object.fromEntries(ABILITIES.map(ability => [
             ability,
             character.abilityBonusProviders
-                .filter(({abilityBonus}) => abilityBonus && ability in abilityBonus && abilityBonus[ability] !== 0)
+                .filter(({abilityBonus}) => abilityBonus && ability in abilityBonus && abilityBonus[ability])
                 .map(abilityBonus => `${abilityBonus.reference}`)
                 .join(", ")
         ]))

@@ -17,3 +17,7 @@ export interface Race extends FeatureProvider, AbilityBonusProvider {
     reference: Reference;
     proficiencies: ProficiencyIndex;
 }
+
+export interface CompositeRace extends Race {
+    abilityBonusProviders: AbilityBonusProvider[];
+}

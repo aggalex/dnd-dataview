@@ -1,13 +1,13 @@
 import {Repository} from "@/repository/Repository";
-import {Race, sizeSchema} from "@/model/Race";
+import {CompositeRace, Race, sizeSchema} from "@/model/Race";
 import {coerce} from "@/model/Util";
 import {z} from "zod";
 import {Hierarchical, HierarchyResolver} from "@/model/Hierarchical";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
-import {ProficiencyIndex} from "@/model/Proficiency";
 import {Page, Reference} from "@/model/Dataview";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
-import {ABILITIES, Ability} from "@/model/Abilities";
+import {ABILITIES} from "@/model/Abilities";
+import {ProficiencyIndex} from "@/model/Proficiency";
 
 const raceSchema = z.looseObject({
     "Feature": coerce.array(Reference.schema),
@@ -17,23 +17,21 @@ const raceSchema = z.looseObject({
     "Trait": coerce.array(Reference.schema),
 });
 
-const raceHierarchyResolver: HierarchyResolver<Race> = (race, parent): Race => {
+const raceHierarchyResolver: HierarchyResolver<CompositeRace> = (race, parent) => {
     return {
         features: [...race.features, ...parent.features ?? []],
         languages: [...race.languages, ...parent.languages ?? []],
         proficiencies: new ProficiencyIndex(race.proficiencies, ...(parent.proficiencies? [parent.proficiencies]: [])),
-        abilityBonus: Object.fromEntries(ABILITIES
-            .map(key => [key,
-                race.abilityBonus?.[key] == null && parent.abilityBonus?.[key] == null? null
-                : (race.abilityBonus?.[key] ?? 0) + (race.abilityBonus?.[key] ?? 0)])),
+        abilityBonus: race.abilityBonus,
         reference: race.reference,
         size: race.size ?? parent.size,
         speed: race.speed ?? parent.speed,
         traits: [...race.traits, ...parent.traits ?? []],
+        abilityBonusProviders: [...race.abilityBonusProviders, ...(parent.abilityBonusProviders ?? [])],
     }
 }
 
-export class RaceRepository extends Repository<Hierarchical<Race>> {
+export class RaceRepository extends Repository<CompositeRace> {
 
     private readonly proficiencyRepository = new ProficiencyRepository(this.dv);
     private readonly abilityBonusRepository = new AbilityBonusRepository(this.dv);
@@ -70,17 +68,18 @@ export class RaceRepository extends Repository<Hierarchical<Race>> {
             } as const)[key])
         } satisfies Hierarchical<Race>))
         .transform(race => {
-            this.dv.paragraph(`Race ${race.reference} has parent race ${race.inherit?.reference}`)
+            const compositeRace: CompositeRace = {
+                ...race,
+                abilityBonusProviders: [{ reference: race.reference, abilityBonus: race.abilityBonus }]
+            };
             if (race.inherit) {
                 const parent = Object.create(race.inherit);
                 for (const key in race.overrides) {
                     parent[key] = undefined;
                 }
-                const output = raceHierarchyResolver(race, parent);
-                this.dv.paragraph("```json\n" + JSON.stringify(output) + "\n```")
-                return output;
+                return raceHierarchyResolver(compositeRace, parent);
             }
-            return race;
+            return compositeRace;
         });
 
     override readonly warnings = z.looseObject({

@@ -3,7 +3,7 @@ import {RepositoryResult} from "@/repository/Repository";
 
 export type Hierarchical<Item> = Item & {
     overrides?: (keyof Item)[];
-    inherit?: Item;
+    inherit?: Partial<Hierarchical<Item>>;
 }
 
 export type HierarchyResolver<Item> = (item: Item, parent: Partial<Item>) => Item;

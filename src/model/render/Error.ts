@@ -1,25 +1,15 @@
-import {Widget} from "@/model/render/Widget";
 import {ModelError} from "@/model/Error";
-import {DataView} from "@/model/Dataview";
+import {Callout} from "@/model/render/Collapsible";
 
-export class ErrorSection extends Widget {
+export class ErrorSection extends Callout {
 
     constructor(readonly error: ModelError) {
-        super();
-    }
-
-    renderIn(dv: DataView): void {
-        const {level, title, message} = this.error;
+        const {level, title, message} = error;
         const tag = ({
             Error: "failure",
             Warning: "warning"
-        })[level ?? "Error"];
-
-        dv.paragraph(`
-> [!${tag}] ${title}
-> 
-> ${message.trim().replaceAll("\n", "\n> ")}	
-		`.trim());
+        } as const)[level ?? "Error"];
+        super({ type: tag, title }, [message.trim()]);
     }
 
 }
