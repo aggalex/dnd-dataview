@@ -10,7 +10,7 @@ import {ArmorRepository} from "@/repository/EquipmentRepository";
 import {FeatureProviderRepository, FeatureRepository} from "@/repository/FeatureRepository";
 import {ClassRepository} from "@/repository/ClassRepository";
 import {BackgroundRepository} from "@/repository/BackgroundRepository";
-import {FeatureProvider} from "@/model/Feature";
+import {Feature, FeatureProvider, isClassFeature} from "@/model/Feature";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Class} from "@/model/Class";
 import {Logger} from "@/controller/Logger";
@@ -159,19 +159,25 @@ export class CharacterLogicController extends Controller {
     }
 
     private async collectClassFeatures(classes: ClassDescriptor[]) {
-        const collect = async (cls: Class) => {
-            return (await this.classRepository.getFeaturesByReference(cls.reference))
-                ?.transform(this.errorViewModel.handle(cls.reference, "Features"))
-        };
-        const classFeatures = (await Promise.all(
-            classes.map(async (characterClass) => (await Promise.all(
-                [characterClass.class, characterClass.subclass]
-                    .filter((item): item is NonNullable<typeof item> => !!item)
-                    .flatMap(collect)
-            ))
-                .flatMap(feats => feats ?? [])
-                .filter(feat => feat.for?.level ?? 0 < characterClass.level)))
-        ).flatMap(a => a)
+        const allFeatures = (await this.featureRepository.findAllFeatures())
+            .transform(this.errorViewModel.handle(new Reference(this.dv.current().file.path), "Features")) ?? [];
+
+        const featureIndex = Object.groupBy(
+            allFeatures.filter(isClassFeature),
+            feature => feature.for.class.path
+        );
+
+        const getFeature = (ref: Reference, level: number) =>
+            featureIndex[ref.path]
+                ?.filter(feat => feat.for.level <= level)
+                .map(feat => {
+                    feat.from = ref;
+                    return feat;
+                })
+
+        const classFeatures = classes.flatMap(({ class: cls, subclass, level }) => [cls?.reference, subclass?.reference]
+            .filter((path): path is Reference => !!path)
+            .flatMap(path => getFeature(path, level))) as Feature[];
 
         const explicitFeatures = classes.map(characterClass =>
             [characterClass.class, characterClass.subclass].flatMap(provider => this.getFeaturesOf(provider))

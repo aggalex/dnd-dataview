@@ -17,3 +17,11 @@ export interface FeatureProvider {
     features: Reference[];
     reference: Reference;
 }
+
+export interface ClassFeature extends Feature {
+    for: NonNullable<Feature["for"]>
+}
+
+export function isClassFeature(feat: Feature): feat is ClassFeature {
+    return !!feat.for
+}
