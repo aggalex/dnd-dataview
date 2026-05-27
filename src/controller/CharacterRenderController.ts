@@ -5,7 +5,6 @@ import {CalculatedCharacter} from "@/model/Character";
 import {ModelError} from "@/model/Error";
 import {WeaponRepository} from "@/repository/EquipmentRepository";
 import {Table} from "@/model/render/Table";
-import {Weapon} from "@/model/Equipment";
 import {
     ABILITIES,
     SKILLS,
@@ -19,6 +18,8 @@ import {Section} from "@/model/render/Section";
 import {Embedding} from "@/model/render/Embeding";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Logger} from "@/controller/Logger";
+import {Label} from "@/model/render/Label";
+import {Widget} from "@/model/render/Widget";
 
 export class CharacterRenderController extends RenderController {
 
@@ -142,16 +143,14 @@ export class CharacterRenderController extends RenderController {
         )
     }
 
-    private getState(character: CalculatedCharacter): Tag[] {
-        const state = {
-            Speed: character.speed,
-            AC: 0,
-            "Passive Perception": 0,
-            Initiative: 0,
-        }
-
-        return Object.entries(state)
-            .map(([key, value]) => new Tag(key, value));
+    private getState(character: CalculatedCharacter): Widget[] {
+        return [
+            new Tag("Speed", character.speed),
+            new Tag("AC", character.armorClass),
+            new Label("(" + (character.armor? character.armor.toString(): "no armor") + ")"),
+            new Tag("Passive Perception", character.passivePerception),
+            new Tag("Initiative", character.initiative),
+        ]
     }
 
 }

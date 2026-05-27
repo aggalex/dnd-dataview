@@ -13,12 +13,9 @@ export type Weapon = z.infer<typeof weaponSchema> & {
     reference: Reference,
 }
 
-export const armorSchema = z.object({
-    armorClass: z.coerce.number().optional(),
-    type: z.string().optional(),
-    weight: z.string().optional(),
-})
-
-export type Armor = z.infer<typeof armorSchema> & {
+export type Armor = {
+    armorClass?: number,
+    type?: string,
+    weight?: string,
     reference: Reference,
 }
