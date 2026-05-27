@@ -159,25 +159,20 @@ export class CharacterLogicController extends Controller {
     }
 
     private async collectClassFeatures(classes: ClassDescriptor[]) {
-        const allFeatures = (await this.featureRepository.findAllFeatures())
-            .transform(this.errorViewModel.handle(new Reference(this.dv.current().file.path), "Features")) ?? [];
-
-        const featureIndex = Object.groupBy(
-            allFeatures.filter(isClassFeature),
-            feature => feature.for.class.path
-        );
-
-        const getFeature = (ref: Reference, level: number) =>
-            featureIndex[ref.path]
+        const getFeature = async (ref: Reference, level: number) =>
+            (await this.featureRepository.findByClass(ref))
+                .transform(this.errorViewModel.handle(new Reference(this.dv.current().file.path), "Features"))
                 ?.filter(feat => feat.for.level <= level)
                 .map(feat => {
                     feat.from = ref;
                     return feat;
-                })
+                }) ?? []
 
-        const classFeatures = classes.flatMap(({ class: cls, subclass, level }) => [cls?.reference, subclass?.reference]
-            .filter((path): path is Reference => !!path)
-            .flatMap(path => getFeature(path, level))) as Feature[];
+        const classFeatures = (await Promise.all(
+            classes.flatMap(({class: cls, subclass, level}) => [cls?.reference, subclass?.reference]
+                .filter((path): path is Reference => !!path)
+                .map(path => getFeature(path, level)))
+        )).flat() as Feature[]
 
         const explicitFeatures = classes.map(characterClass =>
             [characterClass.class, characterClass.subclass].flatMap(provider => this.getFeaturesOf(provider))

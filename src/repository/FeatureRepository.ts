@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {Repository, RepositoryResult} from "@/repository/Repository";
-import {Feature, FeatureProvider} from "@/model/Feature";
+import {ClassFeature, Feature, FeatureProvider} from "@/model/Feature";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {Reference} from "@/model/Dataview";
 import {coerce} from "@/model/Util";
@@ -31,14 +31,14 @@ export class FeatureRepository extends Repository<Feature> {
                 } : undefined
             }));
 
-    async findAllFeatures(): Promise<RepositoryResult<Feature[]>> {
-        const { value: { values: references }} = await this.dv.query(`LIST FROM "Features"`);
+    async findByClass(cls: Reference): Promise<RepositoryResult<ClassFeature[]>> {
+        const { value: { values: references }} = await this.dv.query(`LIST FROM "Features" WHERE class = ${cls}`);
 
         const results = references
             .map(ref => this.getByReference(ref))
             .filter((item): item is NonNullable<typeof item> => !!item);
 
-        return RepositoryResult.of(results);
+        return RepositoryResult.of(results) as RepositoryResult<ClassFeature[]>;
     }
 }
 
