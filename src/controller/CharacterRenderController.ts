@@ -20,6 +20,7 @@ import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Logger} from "@/controller/Logger";
 import {Label} from "@/model/render/Label";
 import {Widget} from "@/model/render/Widget";
+import {isNotNull} from "@/model/Util";
 
 export class CharacterRenderController extends RenderController {
 
@@ -84,7 +85,7 @@ export class CharacterRenderController extends RenderController {
         const weapons = character.weapons
             .map(ref => this.weaponRepository.getByReference(ref)
                 ?.transform(this.errorViewModel.handle(ref, "Weapons")))
-            .filter((res): res is NonNullable<typeof res> => res != null)
+            .filter(isNotNull)
 
         const weaponRows = weapons
             .map(({reference, attack, damage, reach, range}) => [

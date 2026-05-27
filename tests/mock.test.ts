@@ -4,7 +4,7 @@ import {mock} from "node:test";
 import {Repository} from "@/repository/Repository";
 import {Result} from "@/model/Error";
 import {z, ZodError} from "zod";
-import {Controller} from "@/controller/Controller";
+import {isNotNull} from "@/model/Util";
 
 export class MockPage implements Page {
 
@@ -88,7 +88,7 @@ export class MockDataView implements DataView {
     }
 
     #renderFileLink(path: string, embed?: boolean, displayName?: string) {
-        console.log(`${(embed??false)?"!":""}[[${[path, displayName].filter((a): a is NonNullable<typeof a> => !!a).join("|")}]]`)
+        console.log(`${(embed??false)?"!":""}[[${[path, displayName].filter(isNotNull).join("|")}]]`)
     }
 }
 

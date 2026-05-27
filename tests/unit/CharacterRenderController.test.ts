@@ -11,6 +11,7 @@ import {ABILITIES, ALL_SKILLS, Skill} from "@/model/Abilities";
 import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {Reference} from "@/model/Dataview";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
+import {isNotNull} from "@/model/Util";
 
 class TestContext {
     readonly dv = new MockDataView(MockPage.of("Me"));
@@ -72,6 +73,7 @@ class TestContext {
         class: [],
         race: new Reference(""),
         weapons: [],
+        spells: [],
         money: {
             platinum: 0,
             gold: 0,
@@ -252,7 +254,7 @@ test("Features are rendered correctly", async () => {
     const feats = context.dv.paragraph.mock.calls
         .filter(({ arguments: [text] }) => typeof text == "string" && text.startsWith("![["))
         .map(({ arguments: [text] }) => /\[\[([\w ]*)]]/.exec(text as string))
-        .filter((arr): arr is NonNullable<typeof arr> => !!arr)
+        .filter(isNotNull)
         .map(arr => arr[1])
 
     assert.deepStrictEqual(new Set(headers), new Set(["Features", "From [[Race]]", "From [[Class]]"]));

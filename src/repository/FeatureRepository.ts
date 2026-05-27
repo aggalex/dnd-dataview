@@ -3,7 +3,7 @@ import {Repository, RepositoryResult} from "@/repository/Repository";
 import {ClassFeature, Feature, FeatureProvider} from "@/model/Feature";
 import {ProficiencyRepository} from "@/repository/ProficiencyRepository";
 import {Reference} from "@/model/Dataview";
-import {coerce} from "@/model/Util";
+import {coerce, isNotNull} from "@/model/Util";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
 
 export class FeatureRepository extends Repository<Feature> {
@@ -36,7 +36,7 @@ export class FeatureRepository extends Repository<Feature> {
 
         const results = references
             .map(ref => this.getByReference(ref))
-            .filter((item): item is NonNullable<typeof item> => !!item);
+            .filter(isNotNull);
 
         return RepositoryResult.of(results) as RepositoryResult<ClassFeature[]>;
     }

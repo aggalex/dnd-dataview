@@ -1,5 +1,5 @@
 import {DataView, Reference} from "@/model/Dataview";
-import {AbilityBonus, Proficiency, ProficiencyIndex} from "@/model/Proficiency";
+import {Proficiency, ProficiencyIndex} from "@/model/Proficiency";
 import {CalculatedCharacter, Character} from "@/model/Character";
 import {ABILITIES, Ability, AbilityBonusProvider, AbilityScores, Skill, SKILLS, SkillScores} from "@/model/Abilities";
 import {AbilityBonusRepository} from "@/repository/AbilityRepository";
@@ -14,6 +14,8 @@ import {Feature, FeatureProvider, isClassFeature} from "@/model/Feature";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Class} from "@/model/Class";
 import {Logger} from "@/controller/Logger";
+import {isNotNull} from "@/model/Util";
+import {Spell} from "@/model/Spell";
 
 interface ClassDescriptor {
     class?: Class,
@@ -65,14 +67,15 @@ export class CharacterLogicController extends Controller {
             ...classes
                 .flatMap(desc => [desc.class, desc.subclass]),
             background
-        ].filter((a): a is NonNullable<typeof a> => !!a);
+        ].filter(isNotNull);
 
         const abilityBonusProviders: AbilityBonusProvider[] = [...dependencies, ...(race?.abilityBonusProviders ?? [])]
-            .filter((a): a is NonNullable<typeof a> => !!a.abilityBonus && Object.keys(a.abilityBonus).length > 0);
+            .filter(isNotNull)
+            .filter(a => !!a.abilityBonus && Object.keys(a.abilityBonus).length > 0);
 
         const proficiencies: ProficiencyIndex = new ProficiencyIndex(...[...dependencies, ...(race? [race]: [])]
             .flatMap(item => item.proficiencies)
-            .filter((a): a is NonNullable<typeof a> => !!a))
+            .filter(isNotNull))
 
         const abilityScores = this.calculateAbilityScores(character, abilityBonusProviders);
         const abilityChecks = this.calculateAbilityChecks(abilityScores);
@@ -80,6 +83,8 @@ export class CharacterLogicController extends Controller {
         const skills = this.calculateSkills(abilityChecks, proficiencies, proficiencyBonus);
 
         const classFeats = await this.collectClassFeatures(classes);
+
+        const spells: Spell[] = [] // TODO
 
         return {
             ...character,
@@ -90,6 +95,7 @@ export class CharacterLogicController extends Controller {
             abilityChecks,
             savingThrows,
             skills,
+            spells,
             speed: race?.speed ?? NaN,
             passivePerception: 10 + skills.Perception,
             initiative: abilityChecks.Dexterity + proficiencies.initiativeBonus
@@ -170,7 +176,7 @@ export class CharacterLogicController extends Controller {
 
         const classFeatures = (await Promise.all(
             classes.flatMap(({class: cls, subclass, level}) => [cls?.reference, subclass?.reference]
-                .filter((path): path is Reference => !!path)
+                .filter(isNotNull)
                 .map(path => getFeature(path, level)))
         )).flat() as Feature[]
 

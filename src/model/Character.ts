@@ -2,6 +2,7 @@ import {Reference} from "@/model/Dataview";
 import {AbilityBonusProvider, AbilityScores, SkillScores} from "@/model/Abilities";
 import {ProficiencyIndex} from "@/model/Proficiency";
 import {Feature, FeatureProvider} from "@/model/Feature";
+import {Spell} from "@/model/Spell";
 
 export interface CharacterClass {
     class: Reference;
@@ -43,4 +44,5 @@ export interface CalculatedCharacter extends Character {
     abilityChecks: AbilityScores,
     skills: SkillScores,
     allFeatures: Feature[],
+    spells: Spell[],
 }

@@ -15,6 +15,7 @@ const raceSchema = z.looseObject({
     "Speed": z.coerce.number().optional().default(30),
     "Size": sizeSchema.optional().default("Medium"),
     "Trait": coerce.array(Reference.schema),
+    "Spell": coerce.array(Reference.schema),
 });
 
 const raceHierarchyResolver: HierarchyResolver<CompositeRace> = (race, parent) => {
@@ -27,6 +28,7 @@ const raceHierarchyResolver: HierarchyResolver<CompositeRace> = (race, parent) =
         size: race.size ?? parent.size,
         speed: race.speed ?? parent.speed,
         traits: [...race.traits, ...parent.traits ?? []],
+        spells: [...race.spells, ...parent.spells ?? []],
         abilityBonusProviders: [...race.abilityBonusProviders, ...(parent.abilityBonusProviders ?? [])],
     }
 }
@@ -55,6 +57,7 @@ export class RaceRepository extends Repository<CompositeRace> {
             speed: race.Speed,
             size: race.Size,
             traits: race.Trait,
+            spells: race.Spell,
             proficiencies: race.proficiencies,
             abilityBonus: race.abilityBonuses,
             reference: race.reference,
@@ -64,7 +67,8 @@ export class RaceRepository extends Repository<CompositeRace> {
                 "Language": "languages",
                 "Speed": "speed",
                 "Size": "size",
-                "Trait": "traits"
+                "Trait": "traits",
+                "Spell": "spells",
             } as const)[key])
         } satisfies Hierarchical<Race>))
         .transform(race => {

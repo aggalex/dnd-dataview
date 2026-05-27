@@ -5,3 +5,7 @@ export const coerce = {
         return z.array(item).or(item.transform(a => [a])).default([])
     }
 }
+
+export function isNotNull<U>(item: U): item is NonNullable<U> {
+    return item != null;
+}
