@@ -1,0 +1,298 @@
+/* =========================================================
+   OBSIDIAN DEFAULT CSS VARIABLES
+   ========================================================= */
+
+/* =========================================================
+   LIGHT THEME
+   ========================================================= */
+
+.theme-light {
+
+    /* -----------------------------------------------------
+       Base colors
+       ----------------------------------------------------- */
+
+    --color-base-00: #ffffff;
+    --color-base-05: #fcfcfc;
+    --color-base-10: #fafafa;
+    --color-base-20: #f6f6f6;
+    --color-base-25: #e3e3e3;
+    --color-base-30: #e0e0e0;
+    --color-base-35: #d4d4d4;
+    --color-base-40: #bdbdbd;
+    --color-base-50: #ababab;
+    --color-base-60: #707070;
+    --color-base-70: #5a5a5a;
+    --color-base-100: #222222;
+
+    /* -----------------------------------------------------
+       Accent colors
+       ----------------------------------------------------- */
+
+    --accent-h: 254;
+    --accent-s: 80%;
+    --accent-l: 68%;
+
+    /* -----------------------------------------------------
+       Extended colors
+       ----------------------------------------------------- */
+
+    --color-red: #e93147;
+    --color-orange: #ec7500;
+    --color-yellow: #e0ac00;
+    --color-green: #08b94e;
+    --color-cyan: #00bfbc;
+    --color-blue: #086ddd;
+    --color-purple: #7852ee;
+    --color-pink: #d53984;
+
+    --color-red-rgb: 233, 49, 71;
+    --color-orange-rgb: 236, 117, 0;
+    --color-yellow-rgb: 224, 172, 0;
+    --color-green-rgb: 8, 185, 78;
+    --color-cyan-rgb: 0, 191, 188;
+    --color-blue-rgb: 8, 109, 221;
+    --color-purple-rgb: 120, 82, 238;
+    --color-pink-rgb: 213, 57, 132;
+
+    /* -----------------------------------------------------
+       Monochrome
+       ----------------------------------------------------- */
+
+    --mono-rgb-0: 255, 255, 255;
+    --mono-rgb-100: 0, 0, 0;
+
+    /* -----------------------------------------------------
+       Semantic mappings
+       NOTE:
+       These are inferred from the default theme behavior.
+       ----------------------------------------------------- */
+
+    --background-primary: var(--color-base-00);
+    --background-primary-alt: var(--color-base-05);
+    --background-secondary: var(--color-base-10);
+    --background-secondary-alt: var(--color-base-20);
+
+    --background-modifier-hover: rgba(0, 0, 0, 0.075);
+    --background-modifier-active-hover: rgba(0, 0, 0, 0.12);
+    --background-modifier-border: var(--color-base-30);
+    --background-modifier-border-hover: var(--color-base-40);
+    --background-modifier-border-focus: var(--color-blue);
+
+    --text-normal: var(--color-base-100);
+    --text-muted: var(--color-base-70);
+    --text-faint: var(--color-base-50);
+
+    --text-on-accent: #ffffff;
+    --text-on-accent-inverted: #000000;
+
+    --text-success: var(--color-green);
+    --text-warning: var(--color-orange);
+    --text-error: var(--color-red);
+
+    --text-accent: var(--color-blue);
+    --text-accent-hover: #005ccc;
+
+    --interactive-normal: var(--color-base-20);
+    --interactive-hover: var(--color-base-25);
+
+    --interactive-accent: hsl(
+            var(--accent-h),
+            var(--accent-s),
+            var(--accent-l)
+    );
+
+    --interactive-accent-hsl:
+            var(--accent-h),
+            var(--accent-s),
+            var(--accent-l);
+
+    --interactive-accent-hover: hsl(
+            var(--accent-h),
+            var(--accent-s),
+            calc(var(--accent-l) - 5%)
+    );
+
+    --text-selection: rgba(120, 82, 238, 0.25);
+    --text-highlight-bg: rgba(255, 208, 0, 0.35);
+
+    --caret-color: var(--interactive-accent);
+}
+
+/* =========================================================
+   DARK THEME
+   ========================================================= */
+
+.theme-dark {
+
+    /* -----------------------------------------------------
+       Base colors
+       ----------------------------------------------------- */
+
+    --color-base-00: #1e1e1e;
+    --color-base-05: #212121;
+    --color-base-10: #242424;
+    --color-base-20: #262626;
+    --color-base-25: #2a2a2a;
+    --color-base-30: #363636;
+    --color-base-35: #3f3f3f;
+    --color-base-40: #555555;
+    --color-base-50: #666666;
+    --color-base-60: #999999;
+    --color-base-70: #bababa;
+    --color-base-100: #dadada;
+
+    /* -----------------------------------------------------
+       Accent colors
+       ----------------------------------------------------- */
+
+    --accent-h: 254;
+    --accent-s: 80%;
+    --accent-l: 68%;
+
+    /* -----------------------------------------------------
+       Extended colors
+       ----------------------------------------------------- */
+
+    --color-red: #fb464c;
+    --color-orange: #e9973f;
+    --color-yellow: #e0de71;
+    --color-green: #44cf6e;
+    --color-cyan: #53dfdd;
+    --color-blue: #027aff;
+    --color-purple: #a882ff;
+    --color-pink: #fa99cd;
+
+    --color-red-rgb: 251, 70, 76;
+    --color-orange-rgb: 233, 151, 63;
+    --color-yellow-rgb: 224, 222, 113;
+    --color-green-rgb: 68, 207, 110;
+    --color-cyan-rgb: 83, 223, 221;
+    --color-blue-rgb: 2, 122, 255;
+    --color-purple-rgb: 168, 130, 255;
+    --color-pink-rgb: 250, 153, 205;
+
+    /* -----------------------------------------------------
+       Monochrome
+       ----------------------------------------------------- */
+
+    --mono-rgb-0: 0, 0, 0;
+    --mono-rgb-100: 255, 255, 255;
+
+    /* -----------------------------------------------------
+       Semantic mappings
+       ----------------------------------------------------- */
+
+    --background-primary: var(--color-base-00);
+    --background-primary-alt: var(--color-base-05);
+    --background-secondary: var(--color-base-10);
+    --background-secondary-alt: var(--color-base-20);
+
+    --background-modifier-hover: rgba(255, 255, 255, 0.075);
+    --background-modifier-active-hover: rgba(255, 255, 255, 0.12);
+    --background-modifier-border: var(--color-base-30);
+    --background-modifier-border-hover: var(--color-base-40);
+    --background-modifier-border-focus: var(--color-blue);
+
+    --text-normal: var(--color-base-100);
+    --text-muted: var(--color-base-70);
+    --text-faint: var(--color-base-50);
+
+    --text-on-accent: #ffffff;
+    --text-on-accent-inverted: #000000;
+
+    --text-success: var(--color-green);
+    --text-warning: var(--color-orange);
+    --text-error: var(--color-red);
+
+    --text-accent: var(--color-blue);
+    --text-accent-hover: #3392ff;
+
+    --interactive-normal: var(--color-base-20);
+    --interactive-hover: var(--color-base-25);
+
+    --interactive-accent: hsl(
+            var(--accent-h),
+            var(--accent-s),
+            var(--accent-l)
+    );
+
+    --interactive-accent-hsl:
+            var(--accent-h),
+            var(--accent-s),
+            var(--accent-l);
+
+    --interactive-accent-hover: hsl(
+            var(--accent-h),
+            var(--accent-s),
+            calc(var(--accent-l) + 5%)
+    );
+
+    --text-selection: rgba(168, 130, 255, 0.35);
+    --text-highlight-bg: rgba(255, 208, 0, 0.25);
+
+    --caret-color: var(--interactive-accent);
+}
+
+/* =========================================================
+   TYPOGRAPHY DEFAULTS
+   ========================================================= */
+
+:root {
+    --font-interface-theme: ui-sans-serif;
+    --font-text-theme: ui-serif;
+    --font-monospace-theme: ui-monospace;
+
+    --font-text-size: 16px;
+
+    --font-ui-small: 12px;
+    --font-ui-medium: 14px;
+    --font-ui-large: 16px;
+
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    --line-height-normal: 1.5;
+    --line-height-tight: 1.3;
+
+    --bold-modifier: 300;
+}
+
+/* =========================================================
+   RADII
+   ========================================================= */
+
+:root {
+    --radius-s: 4px;
+    --radius-m: 8px;
+    --radius-l: 12px;
+    --radius-xl: 16px;
+}
+
+/* =========================================================
+   BORDER WIDTHS
+   ========================================================= */
+
+:root {
+    --border-width: 1px;
+}
+
+/* =========================================================
+   COMMON SPACING SCALE
+   ========================================================= */
+
+:root {
+    --size-2-1: 2px;
+    --size-2-2: 4px;
+    --size-4-1: 4px;
+    --size-4-2: 8px;
+    --size-4-3: 12px;
+    --size-4-4: 16px;
+    --size-4-5: 20px;
+    --size-4-6: 24px;
+    --size-4-8: 32px;
+    --size-4-10: 40px;
+    --size-4-12: 48px;
+}

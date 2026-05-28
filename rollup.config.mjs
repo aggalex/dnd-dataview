@@ -10,11 +10,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const MODE = process.env.mode;
+
 export default {
-    input: 'src/index.ts', // your entry point
+    input: MODE === "view-test"? 'src/view-index.ts': 'src/index.ts', // your entry point
     output: {
-        file: '~/Documents/Schemes of dead Gods/Scripts/bundle.js',
-        format: 'cjs', // Node = CommonJS (or 'esm' if you prefer)
+    file: MODE === "view-test"? './dist/test-bundle.js' : '/home/alex/Documents/Schemes of dead Gods/Scripts/bundle.js',
+        format: MODE === "view-test"? 'esm' : 'cjs', // Node = CommonJS (or 'esm' if you prefer)
         sourcemap: true,
     },
     external: [
