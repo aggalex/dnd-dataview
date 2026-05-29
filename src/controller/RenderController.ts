@@ -2,7 +2,7 @@ import {DataView} from "@/model/Dataview";
 import {ModelError, ModelErrorContainer} from "@/model/Error";
 import {Controller} from "@/controller/Controller";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
-import {ErrorSection} from "@/model/render/Error";
+import {ErrorSection} from "@/view/widget/Error";
 
 export class RenderController extends Controller {
 

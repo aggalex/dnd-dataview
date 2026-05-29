@@ -1,4 +1,4 @@
-import {Widget} from "@/model/render/Widget";
+import {Widget} from "@/view/widget/Widget";
 import {DataView} from "@/model/Dataview";
 
 export type CalloutType = 'note'

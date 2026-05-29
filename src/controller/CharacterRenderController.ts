@@ -4,23 +4,26 @@ import {CharacterRepository} from "@/repository/CharacterRepository";
 import {CalculatedCharacter} from "@/model/Character";
 import {ModelError} from "@/model/Error";
 import {WeaponRepository} from "@/repository/EquipmentRepository";
-import {Table} from "@/model/render/Table";
+import {Table} from "@/view/widget/Table";
 import {
     ABILITIES,
     SKILLS,
 } from "@/model/Abilities";
 import {Proficiency} from "@/model/Proficiency";
-import {Tag} from "@/model/render/Tag";
-import {Container} from "@/model/render/Container";
+import {Tag} from "@/view/widget/Tag";
+import {Container} from "@/view/widget/Container";
 import {CharacterLogicController} from "@/controller/CharacterLogicController";
 import {StringUtil} from "@/util";
-import {Section} from "@/model/render/Section";
-import {Embedding} from "@/model/render/Embeding";
+import {Section} from "@/view/widget/Section";
+import {Embedding} from "@/view/widget/Embeding";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import {Logger} from "@/controller/Logger";
-import {Label} from "@/model/render/Label";
-import {Widget} from "@/model/render/Widget";
+import {Label} from "@/view/widget/Label";
+import {Widget} from "@/view/widget/Widget";
 import {isNotNull} from "@/model/Util";
+import {Checkbox} from "@/view/widget/Checkbox";
+import {SpellView} from "@/view/SpellView";
+import {SpellViewModel} from "@/viewModel/SpellViewModel";
 
 export class CharacterRenderController extends RenderController {
 
@@ -73,7 +76,8 @@ export class CharacterRenderController extends RenderController {
             abilities,
             skills,
             weapons,
-            feats
+            feats,
+            new SpellView({ spell: calculatedCharacter.spells })
         ]).renderIn(this.dv);
     }
 

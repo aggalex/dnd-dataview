@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 export default {
     input: 'src/index.ts', // your entry point
     output: {
-        file: '~/Documents/Schemes of dead Gods/Scripts/bundle.js',
+        file: '/home/alex/Documents/Schemes of dead Gods/Scripts/bundle.js',
         format: 'cjs', // Node = CommonJS (or 'esm' if you prefer)
         sourcemap: true,
     },

@@ -72,7 +72,7 @@ export interface DataView {
     page(query: string): Page | undefined;
     query(query: string): Promise<{ value: { values: Reference[] }}>;
     span(text: string[] | string): void;
-    el(tag: string): void;
+    el(tag: string): HTMLElement;
     table(headers: string[], rows: readonly (readonly unknown[])[]): void;
     header(level: number, text: string): void;
     paragraph(text: string): void;

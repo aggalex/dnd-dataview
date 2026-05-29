@@ -1,5 +1,5 @@
 import {DataView} from "@/model/Dataview";
-import {Widget} from "@/model/render/Widget";
+import {Widget} from "@/view/widget/Widget";
 
 export type RowOf<Columns> = { readonly [k in keyof Columns]: unknown } & (readonly unknown[]);
 

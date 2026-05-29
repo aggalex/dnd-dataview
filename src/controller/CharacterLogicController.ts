@@ -16,6 +16,7 @@ import {Class} from "@/model/Class";
 import {Logger} from "@/controller/Logger";
 import {isNotNull} from "@/model/Util";
 import {Spell} from "@/model/Spell";
+import {SpellRepository} from "@/repository/SpellRepository";
 
 interface ClassDescriptor {
     class?: Class,
@@ -36,6 +37,7 @@ export class CharacterLogicController extends Controller {
         private readonly featureProviderRepository = new FeatureProviderRepository(dv),
         private readonly classRepository = new ClassRepository(dv),
         private readonly backgroundRepository = new BackgroundRepository(dv),
+        private readonly spellRepository = new SpellRepository(dv),
         private readonly logger = new Logger(dv, CharacterLogicController.name)
     ) {
         super(dv);
@@ -84,7 +86,8 @@ export class CharacterLogicController extends Controller {
 
         const classFeats = await this.collectClassFeatures(classes);
 
-        const spells: Spell[] = [] // TODO
+        const spells: Spell[] = this.spellRepository.findIn(this.dv.current())
+            .transform(this.errorViewModel.handle(new Reference(this.dv.current().file.link.path), "Spells")) ?? []
 
         return {
             ...character,

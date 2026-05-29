@@ -1,6 +1,6 @@
-import {Widget} from "@/model/render/Widget";
+import {Widget} from "@/view/widget/Widget";
 import {DataView} from "@/model/Dataview";
-import {Container} from "@/model/render/Container";
+import {Container} from "@/view/widget/Container";
 
 export class Section extends Container {
     readonly header: string;

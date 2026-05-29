@@ -1,6 +1,6 @@
 import {DataView} from "@/model/Dataview";
 import {Controller} from "@/controller/Controller";
-import {Callout, CalloutType, Collapsible} from "@/model/render/Collapsible";
+import {Callout, CalloutType, Collapsible} from "@/view/widget/Collapsible";
 
 export class Logger extends Controller {
 

@@ -1,5 +1,5 @@
 import {ModelError} from "@/model/Error";
-import {Callout} from "@/model/render/Collapsible";
+import {Callout} from "@/view/widget/Collapsible";
 
 export class ErrorSection extends Callout {
 

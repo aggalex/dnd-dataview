@@ -1,5 +1,5 @@
 import {MockDataView} from "@tests/mock.test";
-import {ErrorSection} from "@/model/render/Error";
+import {ErrorSection} from "@/view/widget/Error";
 import {ErrorViewModel} from "@/viewModel/ErrorViewModel";
 import test from "node:test";
 import {z} from "zod";
