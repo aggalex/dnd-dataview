@@ -1,7 +1,7 @@
 import {Spell} from "@/model/Spell";
 import {Reference} from "@/model/Dataview";
 import {StringUtil} from "@/util";
-import {BehaviorSubject, publish, share} from "rxjs";
+import {BehaviorSubject, share} from "rxjs";
 
 export class SpellViewModel {
     private readonly spellIndex: Record<string, Spell>
@@ -21,11 +21,11 @@ export class SpellViewModel {
 
     readonly onPreparedChanged = new Set<(v: Set<string>) => void>();
 
-    commit(prepared: Reference[]) {
-        this.#prepared.next(new Set(prepared.map(ref => ref.path)));
-    }
-
-    reset() {
+    prepare(ref: Reference, prepared: boolean) {
+        if (prepared)
+            this.#prepared.value.add(ref.path);
+        else
+            this.#prepared.value.delete(ref.path);
         this.#prepared.next(this.#prepared.value);
     }
 

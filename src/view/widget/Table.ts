@@ -1,7 +1,7 @@
 import {DataView} from "@/model/Dataview";
-import {Widget} from "@/view/widget/Widget";
+import {HTMLWidget, Widget} from "@/view/widget/Widget";
 
-export type RowOf<Columns> = { readonly [k in keyof Columns]: unknown } & (readonly unknown[]);
+export type RowOf<Columns> = { readonly [k in keyof Columns]: HTMLWidget | unknown } & (readonly unknown[]);
 
 export class Table<Columns extends string[] = string[]> extends Widget {
 
@@ -10,7 +10,9 @@ export class Table<Columns extends string[] = string[]> extends Widget {
     }
 
     override renderIn(dv: DataView) {
-        dv.table(this.columns, this.rows)
+        dv.table(
+            this.columns,
+            this.rows.map(row => row.map(cell => cell instanceof HTMLWidget? cell.intoElement() : cell)));
     }
 
 }

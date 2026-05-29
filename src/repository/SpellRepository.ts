@@ -4,6 +4,11 @@ import {z, ZodISODuration} from "zod";
 import {Page, Reference} from "@/model/Dataview";
 import {coerce, isNotNull} from "@/model/Util";
 import {Result} from "@/model/Error";
+import {Duration} from "luxon";
+
+const durationSchema = z.string()
+    .or(z.custom<Duration>(Duration.isDuration)
+        .transform((duration: Duration) => duration.toHuman()))
 
 export class SpellRepository extends Repository<Spell> {
 
@@ -11,12 +16,12 @@ export class SpellRepository extends Repository<Spell> {
         school: z.string(),
         range: z.string(),
         level: z.coerce.number().or(z.literal("cantrip").transform(() => 0)),
-        "casting time": z.coerce.string(),
+        "casting time": durationSchema,
         components: z.preprocess(
             value => typeof value === 'string'? [...value]: value,
             z.array(spellComponentSchema)
         ),
-        duration: z.coerce.string(),
+        duration: durationSchema,
         "spell list": coerce.array(Reference.schema),
     })
         .and(this.reference)

@@ -1,12 +1,10 @@
-import {Widget} from "@/view/widget/Widget";
-import {DataView} from "@/model/Dataview";
+import {HTMLWidget, Widget} from "@/view/widget/Widget";
 import {html, render} from "lit-html";
 
-export class Checkbox extends Widget {
+export class Checkbox extends HTMLWidget {
 
     onChange?: (value: boolean) => void;
     #value: boolean;
-    container!: HTMLElement;
 
     get value() {
         return this.#value;
@@ -23,17 +21,10 @@ export class Checkbox extends Widget {
         this.onChange = onChange;
     }
 
-    renderIn(dv: DataView) {
-        this.container = dv.el("span");
-        dv.paragraph("Rendering Checkbox " + this.value);
-        this.#render();
-    }
-
-    #render() {
-        this.container.innerHTML = ""
-        render(html`
+    render() {
+        return html`
             <input type="checkbox" @change="${(ev: Event & { target: HTMLInputElement }) => this.value = ev.target.checked}">
-        `, this.container);
+        `;
     }
 
 }

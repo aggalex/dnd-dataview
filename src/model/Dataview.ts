@@ -74,6 +74,8 @@ export interface DataView {
     span(text: string[] | string): void;
     el(tag: string): HTMLElement;
     table(headers: string[], rows: readonly (readonly unknown[])[]): void;
+    markdownTable(headers: string[], rows: readonly (readonly unknown[])[]): void;
     header(level: number, text: string): void;
     paragraph(text: string): void;
+    container: HTMLDivElement;
 }
