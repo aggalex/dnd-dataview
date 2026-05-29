@@ -1,8 +1,9 @@
 import {customElement, property} from 'lit/decorators.js';
-import {css, html, LitElement} from "lit";
+import {css, html} from "lit";
+import {ViewElement} from "@/view/ViewElement";
 
 @customElement('ability-score')
-export class AbilityScore extends LitElement {
+export class AbilityScore extends ViewElement {
 
     static styles = css`
         .ability-score {
@@ -22,24 +23,27 @@ export class AbilityScore extends LitElement {
     `
 
     @property()
-    value: number = 3;
+    modifier: number = NaN;
 
     @property()
-    label: string = 'Strength';
+    value: number = NaN;
 
-    get valueStr() {
-        if (this.value > 0) {
-            return `+${this.value}`;
+    @property()
+    label: string = 'Unknown';
+
+    get signedModifier() {
+        if (this.modifier > 0) {
+            return `+${this.modifier}`;
         } else {
-            return `${this.value}`;
+            return `${this.modifier}`;
         }
     }
 
     protected render(): unknown {
         return html`
             <div class="ability-score">
-                <span class="title">${this.valueStr}</span>
-                <span>${this.label}</span>
+                <span class="title">${this.signedModifier}</span>
+                <span>${this.label}: <b>${this.value}</b></span>
             </div>
         `
     }

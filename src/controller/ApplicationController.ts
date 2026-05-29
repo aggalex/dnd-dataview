@@ -20,7 +20,7 @@ export class ApplicationController extends RenderController {
     }
 
     async render() {
-        const el = this.dv.el("test-element") as CharacterView;
+        const characterView = this.dv.el("character-view") as CharacterView;
 
         const ref = new Reference(this.dv.current().file.link.path);
 
@@ -44,7 +44,10 @@ export class ApplicationController extends RenderController {
             return;
         }
 
-        el.character = await this.characterLogicController.calculateCharacter(character);
+        characterView.character = await this.characterLogicController.calculateCharacter(character);
+        characterView.requestUpdate();
+
+        this.renderErrors();
     }
 
 }
